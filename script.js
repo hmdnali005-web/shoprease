@@ -4,42 +4,236 @@
 // To add a product, copy one { ... } block, paste it and change the values.
 // "id" must be different for each product.
 // A new "category" automatically gets its own filter button.
+// Photos are stored in images/products (originally from Unsplash, free to use).
+// To use your own photo, save it there with the same file name to replace it,
+// or add a new file and change "image" to point to it.
 const products = [
+    // ---------- Sleeping Pillows ----------
     {
         id: 1,
-        name: "Wireless Headphones",
-        price: 59.99,
-        category: "Electronics",
-        description: "Crisp sound and deep bass with up to 30 hours of battery life. Soft cushions keep them comfortable all day.",
-        image: "https://placehold.co/400x300?text=Headphones",
-        alt: "Wireless headphones"
+        name: "Cloud Down Pillow",
+        price: 89.00,
+        category: "Sleeping Pillows",
+        description: "Hotel-grade down-alternative fill in a 400-thread-count cotton shell. Soft, supportive and fully washable.",
+        image: "images/products/cloud-down-pillow.jpg",
+        alt: "A plump white sleeping pillow"
     },
     {
         id: 2,
-        name: "Smart Watch",
-        price: 129.99,
-        category: "Electronics",
-        description: "Track your steps, heart rate and sleep, and see notifications at a glance. Water-resistant, with a week-long battery.",
-        image: "https://placehold.co/400x300?text=Smart+Watch",
-        alt: "Smart watch"
+        name: "Mulberry Silk Pillow",
+        price: 119.00,
+        category: "Sleeping Pillows",
+        description: "A pure mulberry silk cover over a medium-firm core, gentle on hair and skin for a smoother night's sleep.",
+        image: "images/products/mulberry-silk-pillow.jpg",
+        alt: "A soft white pillow against a white wall"
     },
     {
         id: 3,
-        name: "Travel Backpack",
-        price: 45.00,
-        category: "Bags",
-        description: "A lightweight, water-resistant backpack with a padded laptop pocket and plenty of room for a weekend away.",
-        image: "https://placehold.co/400x300?text=Backpack",
-        alt: "Travel backpack"
+        name: "Memory Foam Contour Pillow",
+        price: 95.00,
+        category: "Sleeping Pillows",
+        description: "Ergonomic memory foam that cradles the neck and shoulders, wrapped in a breathable bamboo cover.",
+        image: "images/products/memory-foam-contour-pillow.jpg",
+        alt: "Stacked white pillows on a bed"
     },
     {
         id: 4,
-        name: "Running Sneakers",
-        price: 89.50,
-        category: "Shoes",
-        description: "Breathable, cushioned running shoes with a grippy sole, built for daily runs and long walks alike.",
-        image: "https://placehold.co/400x300?text=Sneakers",
-        alt: "Running sneakers"
+        name: "Organic Cotton Pillow Pair",
+        price: 129.00,
+        category: "Sleeping Pillows",
+        description: "Two medium-support pillows in organic cotton percale, filled with responsibly sourced feathers.",
+        image: "images/products/organic-cotton-pillow-pair.jpg",
+        alt: "Two white pillows on a made bed"
+    },
+
+    // ---------- Blankets ----------
+    {
+        id: 5,
+        name: "Merino Wool Blanket",
+        price: 165.00,
+        category: "Blankets",
+        description: "Soft, breathable merino wool woven for year-round warmth. Light enough for spring, cozy enough for winter.",
+        image: "images/products/merino-wool-blanket.jpg",
+        alt: "A stack of folded wool blankets"
+    },
+    {
+        id: 6,
+        name: "Honey Knit Throw",
+        price: 89.00,
+        category: "Blankets",
+        description: "A textured cotton-knit throw in a warm honey tone, perfect for layering at the foot of the bed.",
+        image: "images/products/honey-knit-throw.jpg",
+        alt: "Folded honey-colored knit throws"
+    },
+    {
+        id: 7,
+        name: "Cashmere Blend Throw",
+        price: 189.00,
+        category: "Blankets",
+        description: "Feather-light cashmere and wool blend with hand-finished fringe edges in a soft dove gray.",
+        image: "images/products/cashmere-blend-throw.jpg",
+        alt: "A gray throw blanket with fringe edges"
+    },
+    {
+        id: 8,
+        name: "Waffle Cotton Blanket",
+        price: 119.00,
+        category: "Blankets",
+        description: "Airy waffle-weave cotton that traps warmth without weight. Pre-washed for an instantly soft feel.",
+        image: "images/products/waffle-cotton-blanket.jpg",
+        alt: "A cream textured blanket draped over a chair"
+    },
+
+    // ---------- Bed Sheets ----------
+    {
+        id: 9,
+        name: "Sateen Sheet Set",
+        price: 149.00,
+        category: "Bed Sheets",
+        description: "Silky 600-thread-count cotton sateen with a subtle sheen. Includes a fitted sheet, flat sheet and two pillowcases.",
+        image: "images/products/sateen-sheet-set.jpg",
+        alt: "Close-up of cream sateen bed sheets"
+    },
+    {
+        id: 10,
+        name: "Stonewashed Linen Sheet Set",
+        price: 219.00,
+        category: "Bed Sheets",
+        description: "Pure French flax linen, stonewashed for a relaxed, lived-in texture that gets softer with every wash.",
+        image: "images/products/stonewashed-linen-sheet-set.jpg",
+        alt: "Close-up of charcoal stonewashed linen"
+    },
+    {
+        id: 11,
+        name: "Crisp Percale Sheet Set",
+        price: 139.00,
+        category: "Bed Sheets",
+        description: "Cool, matte cotton percale with a classic hotel crispness. Ideal for warm sleepers.",
+        image: "images/products/crisp-percale-sheet-set.jpg",
+        alt: "Layers of crisp white percale sheets"
+    },
+    {
+        id: 12,
+        name: "Bamboo Lyocell Sheet Set",
+        price: 169.00,
+        category: "Bed Sheets",
+        description: "Breathable, temperature-regulating bamboo lyocell with a buttery-soft drape.",
+        image: "images/products/bamboo-lyocell-sheet-set.jpg",
+        alt: "Soft white bamboo sheets"
+    },
+
+    // ---------- Duvet Covers ----------
+    {
+        id: 13,
+        name: "Channel Quilted Duvet Cover",
+        price: 199.00,
+        category: "Duvet Covers",
+        description: "Crisp white cotton with elegant channel stitching for a tailored, hotel-inspired finish.",
+        image: "images/products/channel-quilted-duvet-cover.jpg",
+        alt: "A white channel-quilted duvet"
+    },
+    {
+        id: 14,
+        name: "Diamond Quilted Duvet Cover",
+        price: 189.00,
+        category: "Duvet Covers",
+        description: "Soft gray cotton with a diamond-quilted face that adds quiet texture to any bedroom.",
+        image: "images/products/diamond-quilted-duvet-cover.jpg",
+        alt: "A gray quilted duvet cover on a bed"
+    },
+    {
+        id: 15,
+        name: "Classic White Duvet Cover",
+        price: 159.00,
+        category: "Duvet Covers",
+        description: "Timeless white cotton sateen with a hidden button closure and corner ties to keep your duvet in place.",
+        image: "images/products/classic-white-duvet-cover.jpg",
+        alt: "A bed dressed in a white duvet cover"
+    },
+    {
+        id: 16,
+        name: "Washed Linen Duvet Cover",
+        price: 239.00,
+        category: "Duvet Covers",
+        description: "Relaxed, breathable linen in natural white. Garment-washed for softness and an effortless look.",
+        image: "images/products/washed-linen-duvet-cover.jpg",
+        alt: "A soft white washed linen duvet"
+    },
+
+    // ---------- Towels ----------
+    {
+        id: 17,
+        name: "Plush Turkish Towel Set",
+        price: 99.00,
+        category: "Towels",
+        description: "Three long-staple Turkish cotton towels: thick, absorbent and cloud-soft.",
+        image: "images/products/plush-turkish-towel-set.jpg",
+        alt: "A stack of plush gray and white towels"
+    },
+    {
+        id: 18,
+        name: "Hotel Collection Towel Set",
+        price: 129.00,
+        category: "Towels",
+        description: "A six-piece set of 700 GSM towels in soft mist gray, made to feel like a five-star stay.",
+        image: "images/products/hotel-collection-towel-set.jpg",
+        alt: "A stack of folded light gray towels"
+    },
+    {
+        id: 19,
+        name: "Charcoal Ribbed Bath Sheet",
+        price: 59.00,
+        category: "Towels",
+        description: "An extra-large bath sheet with a ribbed texture in deep charcoal. Quick-drying and generously sized.",
+        image: "images/products/charcoal-ribbed-bath-sheet.jpg",
+        alt: "A rolled charcoal bath towel"
+    },
+    {
+        id: 20,
+        name: "Waffle Weave Hand Towels",
+        price: 45.00,
+        category: "Towels",
+        description: "A pair of lightweight waffle-weave hand towels that dry quickly and look beautiful on display.",
+        image: "images/products/waffle-weave-hand-towels.jpg",
+        alt: "White and charcoal towels hanging in a bathroom"
+    },
+
+    // ---------- Home Accessories ----------
+    {
+        id: 21,
+        name: "Linen & Cedar Reed Diffuser",
+        price: 49.00,
+        category: "Home Accessories",
+        description: "A calming blend of fresh linen and soft cedarwood in a hand-blown glass bottle.",
+        image: "images/products/linen-cedar-reed-diffuser.jpg",
+        alt: "A glass reed diffuser in soft sunlight"
+    },
+    {
+        id: 22,
+        name: "Amber Glass Scented Candle",
+        price: 39.00,
+        category: "Home Accessories",
+        description: "Hand-poured soy wax with notes of amber, vanilla and sandalwood. Around 50 hours of burn time.",
+        image: "images/products/amber-glass-scented-candle.jpg",
+        alt: "A scented candle in an amber glass jar being lit"
+    },
+    {
+        id: 23,
+        name: "Linen Cushion Cover",
+        price: 35.00,
+        category: "Home Accessories",
+        description: "A washed linen cushion cover in pure white with a concealed zip. Pairs beautifully with our throws.",
+        image: "images/products/linen-cushion-cover.jpg",
+        alt: "A white linen cushion with a knit throw"
+    },
+    {
+        id: 24,
+        name: "Matte Ceramic Vase",
+        price: 65.00,
+        category: "Home Accessories",
+        description: "A hand-glazed ceramic vase in a matte charcoal finish, for fresh stems or dried branches.",
+        image: "images/products/matte-ceramic-vase.jpg",
+        alt: "A matte charcoal ceramic vase with greenery"
     }
 ];
 
@@ -110,9 +304,14 @@ let modalQuantity = 1;
 let lastFocusedElement = null; // the card to return focus to when the popup closes
 
 // The cart: a list (array) of products. Each item looks like:
-// { name: "Smart Watch", price: 129.99, image: "https://...", quantity: 2 }
+// { name: "Cloud Down Pillow", price: 89, image: "https://...", quantity: 2 }
 // It starts with whatever was saved last time (or empty if nothing was saved).
-let cart = loadCart();
+// Items that are no longer sold (not in the products list) are dropped.
+let cart = loadCart().filter(function (item) {
+    return products.some(function (product) {
+        return product.name === item.name;
+    });
+});
 
 
 // =========================================================
@@ -245,10 +444,18 @@ function renderProducts() {
         card.dataset.id = product.id; // so a click on the card knows which product it is
         card.tabIndex = 0;            // lets keyboard users reach the card with Tab
         card.innerHTML = `
-            <img src="${product.image}" alt="${product.alt}">
-            <h3>${product.name}</h3>
-            <p class="price">${formatPrice(product.price)}</p>
-            <button class="btn add-to-cart" data-id="${product.id}">Add to Cart</button>
+            <div class="product-image">
+                <img src="${product.image}" alt="${product.alt}" loading="lazy">
+            </div>
+            <div class="product-info">
+                <p class="product-category">${product.category}</p>
+                <h3>${product.name}</h3>
+                <p class="product-description">${product.description}</p>
+                <div class="product-footer">
+                    <p class="price">${formatPrice(product.price)}</p>
+                    <button class="btn add-to-cart" data-id="${product.id}">Add to Cart</button>
+                </div>
+            </div>
         `;
         productGrid.appendChild(card);
     });
@@ -302,7 +509,7 @@ function sortProducts(list) {
 
 // Builds the filter buttons from the categories found in the product list
 function renderFilterButtons() {
-    // Collect each category once: ["All", "Electronics", "Bags", "Shoes"]
+    // Collect each category once: ["All", "Sleeping Pillows", "Blankets", ...]
     const categories = ["All"];
     products.forEach(function (product) {
         if (!categories.includes(product.category)) {
@@ -796,6 +1003,71 @@ contactForm.addEventListener("submit", function (event) {
     // Empty all the fields
     contactForm.reset();
 });
+
+
+// =========================================================
+// 10. HOMEPAGE EXTRAS: header search icon, category cards,
+//     header shadow on scroll, and scroll-reveal animations
+// =========================================================
+const siteHeader = document.getElementById("site-header");
+const searchToggle = document.getElementById("search-toggle");
+const categoryGrid = document.getElementById("category-grid");
+
+// Header search icon: go to the collection and put the cursor in the search box
+searchToggle.addEventListener("click", function () {
+    closeMobileMenu();
+    closeCheckout();
+    document.getElementById("products").scrollIntoView();
+    searchInput.focus({ preventScroll: true }); // don't interrupt the smooth scroll
+});
+
+// Category cards: the link scrolls to the collection by itself.
+// If products in that category exist, also filter to that category;
+// otherwise show everything (until those products are added to the list).
+categoryGrid.addEventListener("click", function (event) {
+    const card = event.target.closest(".category-card");
+    if (!card) {
+        return;
+    }
+
+    const category = card.dataset.category;
+    const categoryExists = products.some(function (product) {
+        return product.category === category;
+    });
+
+    activeCategory = categoryExists ? category : "All";
+    searchText = "";
+    searchInput.value = "";
+    renderFilterButtons();
+    renderProducts();
+});
+
+// Soft shadow under the header once the page is scrolled
+function updateHeaderShadow() {
+    siteHeader.classList.toggle("scrolled", window.scrollY > 10);
+}
+window.addEventListener("scroll", updateHeaderShadow, { passive: true });
+updateHeaderShadow();
+
+// Scroll reveal: elements with class="reveal" fade and slide in
+// the first time they come into view
+if ("IntersectionObserver" in window) {
+    // Tells the CSS that JavaScript is running, so it's safe to hide them first
+    document.documentElement.classList.add("js-reveal");
+
+    const revealObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+                entry.target.classList.add("is-visible");
+                revealObserver.unobserve(entry.target); // only animate once
+            }
+        });
+    }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+
+    document.querySelectorAll(".reveal").forEach(function (element) {
+        revealObserver.observe(element);
+    });
+}
 
 
 // When the page first loads: build the filter buttons and product cards,
