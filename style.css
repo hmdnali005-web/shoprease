@@ -2,11 +2,17 @@
    1. VARIABLES: our colors and sizes, defined in one place
    ========================================================= */
 :root {
-    --color-primary: #4f46e5;      /* indigo: buttons, logo */
-    --color-primary-dark: #4338ca; /* darker indigo: button hover */
-    --color-text: #1f2937;         /* dark gray: main text */
-    --color-text-light: #6b7280;   /* lighter gray: secondary text */
-    --color-bg: #f9fafb;           /* off-white: page background */
+    /* HAVOME.co brand colors, taken from the logo */
+    --color-primary: #34437f;      /* navy: buttons, prices, accents */
+    --color-primary-dark: #252f5c; /* deep navy: button hover, hero */
+    --color-accent-gray: #a6a6a6;  /* soft gray: the logo's monogram + tagline */
+    --color-text: #1e2333;         /* near-black navy: main text */
+    --color-text-light: #6b6f7b;   /* soft gray: secondary text */
+    --color-bg: #f7f7f8;           /* off-white: page background */
+
+    /* Brand fonts (loaded in index.html) */
+    --font-heading: "Cormorant Garamond", Georgia, serif;
+    --font-tagline: "Montserrat", system-ui, sans-serif;
     --color-white: #ffffff;
 
     --radius: 12px;                /* how rounded corners are */
@@ -49,6 +55,14 @@ h2 {
     font-size: 2rem;
     text-align: center;
     margin-bottom: 2rem;
+}
+
+/* Elegant serif for the big headings, to match the logo */
+h1,
+h2 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    letter-spacing: 0.01em;
 }
 
 
@@ -97,9 +111,13 @@ h2 {
 }
 
 .logo {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+}
+
+.logo-img {
+    height: 56px;                  /* the width follows automatically */
+    width: auto;
 }
 
 .main-nav ul {
@@ -162,11 +180,23 @@ h2 {
     padding: 6rem 2rem;
     text-align: center;
     color: var(--color-white);
-    background: linear-gradient(135deg, #4f46e5, #9333ea);
+    background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary));
+}
+
+/* "LAYERS OF COMFORT" above the headline, styled like the logo's tagline */
+.hero .hero-tagline {
+    margin-bottom: 1rem;
+    font-family: var(--font-tagline);
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.75);
 }
 
 .hero h1 {
-    font-size: 3rem;
+    font-size: 3.5rem;
+    font-weight: 500;
     margin-bottom: 1rem;
 }
 
@@ -432,10 +462,26 @@ h2 {
    10. FOOTER
    ========================================================= */
 .site-footer {
-    padding: 2rem;
+    padding: 2.5rem 2rem;
     text-align: center;
-    color: #d1d5db;
-    background-color: var(--color-text);
+    color: var(--color-accent-gray);
+    background-color: var(--color-primary-dark);
+}
+
+.footer-brand {
+    font-family: var(--font-heading);
+    font-size: 1.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--color-white);
+}
+
+.footer-tagline {
+    margin-bottom: 1rem;
+    font-family: var(--font-tagline);
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
 }
 
 
@@ -1130,6 +1176,10 @@ body.checkout-active main > section:not(.checkout) {
 @media (max-width: 700px) {
     .site-header {
         padding: 1rem;
+    }
+
+    .logo-img {
+        height: 44px;
     }
 
     .hero {
