@@ -1047,6 +1047,7 @@ function renderCompare() {
 
     renderCompareTable();
     updateCompareButtons();
+    updateAssistantCompareButtons();   // the assistant's Compare buttons show the same selection
 }
 
 // The comparison table: one column per product, using only real product data
@@ -1551,7 +1552,6 @@ const assistantLauncher = document.getElementById("assistant-launcher");
 const assistantPanel = document.getElementById("assistant-panel");
 const assistantCloseButton = document.getElementById("assistant-close");
 const assistantMessages = document.getElementById("assistant-messages");
-const assistantSuggestions = document.getElementById("assistant-suggestions");
 const assistantForm = document.getElementById("assistant-form");
 const assistantInput = document.getElementById("assistant-input");
 const assistantLangButtons = document.querySelectorAll(".assistant-lang-btn");
@@ -1635,14 +1635,28 @@ const ASSISTANT_GENERIC_NAME_WORDS = ["pillow", "pillows", "pair", "blanket", "t
 const ASSISTANT_TEXT = {
     en: {
         dir: "ltr",
-        subtitle: "Quick answers from our catalog",
-        placeholder: "Ask about pillows, prices, orders...",
+        subtitle: "Your personal bedding concierge",
+        placeholder: "Type your question...",
+        sendText: "Send",
+        quickTitle: "How can we help?",
+        quickLabels: {
+            pillows: "Shop Pillows", blankets: "Shop Blankets", sheets: "Bed Sheets",
+            towels: "Towels", compare: "Compare Products", budget: "Find by Budget"
+        },
+        compareToggle: "Compare",
+        compareSelected: "Selected",
+        openComparison: "Open comparison",
+        compareNeedTwo: "Select at least two products to compare.",
+        compareGuide: "Let's compare. Which kind of product would you like to compare? Pick a category, then tap <strong>Compare</strong> on two to four products.",
+        compareGuideChips: ["Compare pillows", "Compare blankets", "Compare sheets", "Compare duvet covers", "Compare towels", "Compare accessories"],
+        budgetGuide: "What's your budget? Choose a price range below, or type it, for example “pillows under $100”.",
+        budgetGuideChips: ["Under $50", "Between $50 and $100", "Between $100 and $150", "Over $150"],
         inputLabel: "Type your question",
         send: "Send message",
         close: "Close assistant",
         openLauncher: "Open HAVOME Assistant",
         closeLauncher: "Close HAVOME Assistant",
-        disclaimer: "Automated assistant with scripted answers. Not a live person or AI.",
+        disclaimer: "Ask about products, materials, or prices. Scripted assistant, not a live person or AI.",
         welcome: "Welcome to HAVOME! How can I help you find the perfect bedding and home textiles?",
         suggestions: ["Help me choose a pillow", "Show me blankets", "Show me affordable products", "How do I order?"],
         view: "View product",
@@ -1684,7 +1698,7 @@ const ASSISTANT_TEXT = {
         compareCheaper: function (product, diff) { return "<strong>" + product.name + "</strong> is " + formatPrice(diff) + " less."; },
         compareSamePrice: "Both have the same price.",
         compareNote: "I can only compare the information listed in our catalog.",
-        compareAsk: "Which two products would you like to compare? You can name them, for example “Cloud Down vs Mulberry Silk”, or use the compare button on the product cards.",
+        compareAsk: "Tap <strong>Compare</strong> on two to four products below, then <strong>Open comparison</strong>. You can also type two names, for example “Cloud Down vs Mulberry Silk”.",
         howCart: "<ol><li>Tap <strong>Add to Cart</strong> on any product, or open it with <strong>Quick view</strong>, choose the quantity and tap Add to Cart.</li><li>The bag icon at the top shows how many items are in your cart.</li><li>Tap it to review your cart, change quantities or remove items.</li></ol>",
         howWishlist: "Tap the <strong>heart</strong> on a product photo, or <strong>Add to Wishlist</strong> in the product details, to save it. Open your saved items with the heart icon at the top; from there you can add them to your cart. Your wishlist is saved on this device.",
         howCompare: "Tap the <strong>compare button</strong> (two arrows) on up to 4 products. A bar appears at the bottom; tap <strong>Compare now</strong> to see them side by side. I can also compare two products right here, just name them.",
@@ -1700,18 +1714,32 @@ const ASSISTANT_TEXT = {
         greeting: "Hello! I can help you find pillows, blankets, sheets, duvet covers, towels and home accessories, check prices, or explain how ordering works.",
         thanks: "You're welcome! Is there anything else I can help you with?",
         priceRange: function (min, max) { return "Our prices range from " + formatPrice(min) + " to " + formatPrice(max) + ". Which product or category would you like prices for?"; },
-        fallback: "Sorry, I didn't quite understand. I can help with product categories, prices and budgets, recommendations, comparing products, and how the cart, wishlist and ordering work. Try one of the suggestions below."
+        fallback: "Sorry, I didn't quite understand. I can help with product categories, prices and budgets, recommendations, comparing products, and how the cart, wishlist and ordering work. Try one of the quick actions at the top."
     },
     ar: {
         dir: "rtl",
-        subtitle: "إجابات سريعة من كتالوجنا",
-        placeholder: "اسأل عن المخدات، الأسعار، الطلب...",
+        subtitle: "مساعدك لاختيار المفروشات",
+        placeholder: "اكتب سؤالك...",
+        sendText: "إرسال",
+        quickTitle: "كيف فينا نساعدك؟",
+        quickLabels: {
+            pillows: "تسوّق المخدات", blankets: "تسوّق البطانيات", sheets: "الشراشف",
+            towels: "المناشف", compare: "قارن المنتجات", budget: "حسب الميزانية"
+        },
+        compareToggle: "قارن",
+        compareSelected: "تم الاختيار",
+        openComparison: "فتح المقارنة",
+        compareNeedTwo: "اختار منتجين على الأقل لتقارن.",
+        compareGuide: "يلّا نقارن! أي نوع منتجات بدك تقارن؟ اختار فئة، وبعدين اكبس <strong>«قارن»</strong> على منتجين لأربعة.",
+        compareGuideChips: ["قارن المخدات", "قارن البطانيات", "قارن الشراشف", "قارن أغطية اللحاف", "قارن المناشف", "قارن الإكسسوارات"],
+        budgetGuide: "قديش ميزانيتك؟ اختار فئة سعر من تحت، أو اكتبها، مثلًا «مخدات تحت 100 دولار».",
+        budgetGuideChips: ["تحت 50 دولار", "بين 50 و 100 دولار", "بين 100 و 150 دولار", "فوق 150 دولار"],
         inputLabel: "اكتب سؤالك",
         send: "إرسال الرسالة",
         close: "إغلاق المساعد",
         openLauncher: "افتح مساعد HAVOME",
         closeLauncher: "إغلاق مساعد HAVOME",
-        disclaimer: "مساعد آلي بإجابات مبرمجة مسبقًا. مش شخص حقيقي ولا ذكاء اصطناعي.",
+        disclaimer: "اسأل عن المنتجات، الخامات أو الأسعار. مساعد آلي بإجابات مبرمجة، مش شخص حقيقي ولا ذكاء اصطناعي.",
         welcome: "أهلًا وسهلًا في HAVOME! 🛏️ كيف فينا نساعدك تختار المنتجات المناسبة لراحتك؟",
         suggestions: ["ساعدني اختار مخدة", "ورجيني البطانيات", "شو المنتجات الأرخص؟", "كيف بطلب؟"],
         view: "عرض المنتج",
@@ -1751,7 +1779,7 @@ const ASSISTANT_TEXT = {
         compareCheaper: function (product, diff) { return "<strong><bdi>" + product.name + "</bdi></strong> أرخص بـ<bdi>" + formatPrice(diff) + "</bdi>."; },
         compareSamePrice: "السعرين متل بعض.",
         compareNote: "بقدر قارن بس المعلومات الموجودة بالكتالوج.",
-        compareAsk: "أي منتجين بدك نقارن؟ فيك تكتب أسماءهن، مثلًا «Cloud Down و Mulberry Silk»، أو تستعمل زر المقارنة عالمنتجات.",
+        compareAsk: "اكبس <strong>«قارن»</strong> على منتجين لأربعة من تحت، وبعدين <strong>«فتح المقارنة»</strong>. وفيك كمان تكتب اسمين، مثلًا «Cloud Down و Mulberry Silk».",
         howCart: "<ol><li>اكبس <strong>«Add to Cart»</strong> على أي منتج، أو افتحه بـ<strong>«Quick view»</strong>، اختار الكمية واكبس «Add to Cart».</li><li>أيقونة الشنتة فوق بتوريك كم منتج بسلتك.</li><li>اكبس عليها لتراجع السلة، تغيّر الكميات أو تشيل منتج.</li></ol>",
         howWishlist: "اكبس عـ<strong>القلب</strong> على صورة المنتج، أو <strong>«Add to Wishlist»</strong> بتفاصيل المنتج، لتحفظه. بتلاقي المحفوظات بأيقونة القلب فوق، ومنها فيك تضيفهن عالسلة. قائمتك بتنحفظ على هالجهاز.",
         howCompare: "اكبس <strong>زر المقارنة</strong> (السهمين) على لحد 4 منتجات. رح يطلع شريط تحت، اكبس <strong>«Compare now»</strong> لتشوفهن جنب بعض. وفيني قارن منتجين هون كمان، بس اكتبلي أسماءهن.",
@@ -1767,7 +1795,7 @@ const ASSISTANT_TEXT = {
         greeting: "أهلا فيك! فيني ساعدك تلاقي مخدات، بطانيات، شراشف، أغطية لحاف، مناشف وإكسسوارات، تشوف الأسعار، أو أشرحلك كيف تطلب.",
         thanks: "تكرم! في شي تاني فيني ساعدك فيه؟",
         priceRange: function (min, max) { return "أسعارنا بين <bdi>" + formatPrice(min) + "</bdi> و<bdi>" + formatPrice(max) + "</bdi>. سعر أي منتج أو فئة بدك تعرف؟"; },
-        fallback: "عذرًا، ما فهمت عليك منيح. فيني ساعدك بالفئات، الأسعار والميزانية، الاقتراحات، مقارنة المنتجات، وكيف تستعمل السلة والمفضلة والطلب. جرّب وحدة من الاقتراحات تحت."
+        fallback: "عذرًا، ما فهمت عليك منيح. فيني ساعدك بالفئات، الأسعار والميزانية، الاقتراحات، مقارنة المنتجات، وكيف تستعمل السلة والمفضلة والطلب. جرّب وحدة من الاختصارات فوق."
     }
 };
 
@@ -2010,6 +2038,11 @@ function buildAssistantReply(rawText, lang) {
         return Object.assign({ type: "shop", label: T.showInShop, category: categories.length === 1 ? categories[0] : "" }, extra || {});
     };
 
+    // "Find by budget" without an amount → offer price ranges to choose from
+    if (!budget && a.has("budgetMax") && !a.preferences.length && !wantsCheap && !wantsExpensive && bestMatches.length === 0) {
+        return buildBudgetGuideReply(lang);
+    }
+
     // A specific product by name (e.g. "silk pillow", "reed diffuser")
     if (bestMatches.length && !budget && !wantsCheap && !wantsExpensive && !a.preferences.length) {
         let matches = bestMatches;
@@ -2125,10 +2158,18 @@ function buildCompareReply(a, namedProducts, lang) {
         }
     }
 
+    // Not enough products named yet: let the shopper pick with Compare buttons
     if (selected.length < 2) {
-        const category = a.categories[0] || assistantLastCategories[0];
-        const options = category ? products.filter(function (p) { return p.category === category; }) : [];
-        return { html: T.compareAsk, products: options.map(function (p) { return { id: p.id }; }) };
+        let options = [];
+        if (a.categories.length) {
+            options = products.filter(function (p) { return p.category === a.categories[0]; });
+        } else if (assistantLastProducts.length > 2) {
+            options = assistantLastProducts.map(findProduct).filter(Boolean);
+        }
+        if (options.length === 0) {
+            return buildCompareGuideReply(lang);   // first choose a category
+        }
+        return buildCompareOptionsReply(options, lang);
     }
 
     const sorted = sortByPrice(selected, "asc");
@@ -2156,6 +2197,28 @@ function buildCompareReply(a, namedProducts, lang) {
     };
 }
 
+// "Compare Products": first choose a category
+function buildCompareGuideReply(lang) {
+    const T = ASSISTANT_TEXT[lang];
+    return { html: T.compareGuide, chips: T.compareGuideChips };
+}
+
+// Product cards with a Compare toggle, plus a button to open the full comparison
+function buildCompareOptionsReply(options, lang) {
+    const T = ASSISTANT_TEXT[lang];
+    return {
+        html: T.compareAsk,
+        products: options.map(function (p) { return { id: p.id, compare: true }; }),
+        actions: [{ type: "compare-open", label: T.openComparison }]
+    };
+}
+
+// "Find by Budget": price ranges that the budget rules understand
+function buildBudgetGuideReply(lang) {
+    const T = ASSISTANT_TEXT[lang];
+    return { html: T.budgetGuide, chips: T.budgetGuideChips };
+}
+
 // ---------- Showing messages ----------
 function scrollAssistantToBottom() {
     assistantMessages.scrollTop = assistantMessages.scrollHeight;
@@ -2181,20 +2244,37 @@ function renderAssistantProductCard(item, lang) {
         return "";
     }
     const reason = item.reason ? '<p class="assistant-product-reason" lang="en" dir="ltr">“' + escapeHTML(item.reason) + "”</p>" : "";
+    // Compare toggle (only when the shopper is choosing products to compare)
+    const selected = compareList.includes(product.id);
+    const compareButton = item.compare ?
+        '<button class="assistant-action" data-assistant-action="compare-toggle" data-id="' + product.id + '" aria-pressed="' + selected + '">' +
+        compareIcon.replace('width="18" height="18" ', "") + "<span>" + (selected ? T.compareSelected : T.compareToggle) + "</span></button>" : "";
     return `
         <div class="assistant-product">
             <img src="${product.image}" alt="${escapeHTML(product.alt)}" loading="lazy">
             <div class="assistant-product-info">
+                <p class="assistant-product-category">${assistantCategoryTitle(product.category, lang)}</p>
                 <p class="assistant-product-name" dir="ltr">${escapeHTML(product.name)}</p>
-                <p class="assistant-product-meta">${assistantCategoryTitle(product.category, lang)} · <bdi>${formatPrice(product.price)}</bdi></p>
+                <p class="assistant-product-price"><bdi>${formatPrice(product.price)}</bdi></p>
                 ${reason}
                 <div class="assistant-product-actions">
                     <button class="assistant-action" data-assistant-action="view" data-id="${product.id}">${T.view}</button>
                     <button class="assistant-action primary" data-assistant-action="add" data-id="${product.id}">${T.add}</button>
+                    ${compareButton}
                 </div>
             </div>
         </div>
     `;
+}
+
+// Keep the chat's Compare buttons in sync with the site's comparison list
+function updateAssistantCompareButtons() {
+    assistantMessages.querySelectorAll('[data-assistant-action="compare-toggle"]').forEach(function (button) {
+        const selected = compareList.includes(Number(button.dataset.id));
+        const T = ASSISTANT_TEXT[button.closest(".assistant-message").lang] || ASSISTANT_TEXT[assistantLang];
+        button.setAttribute("aria-pressed", selected);
+        button.querySelector("span").textContent = selected ? T.compareSelected : T.compareToggle;
+    });
 }
 
 function addAssistantBotMessage(reply, lang) {
@@ -2253,8 +2333,10 @@ function handleAssistantMessage(rawText) {
         setAssistantLanguage(lang, false);
     }
     addAssistantUserMessage(text, lang);
+    showAssistantReply(buildAssistantReply(text, lang), lang);
+}
 
-    const reply = buildAssistantReply(text, lang);
+function showAssistantReply(reply, lang) {
     const typing = document.createElement("div");
     typing.className = "assistant-message from-bot assistant-typing";
     typing.setAttribute("aria-hidden", "true");
@@ -2268,15 +2350,69 @@ function handleAssistantMessage(rawText) {
     }, 350);
 }
 
-// ---------- Language ----------
-function renderAssistantSuggestions() {
-    const T = ASSISTANT_TEXT[assistantLang];
-    assistantSuggestions.innerHTML = T.suggestions.map(function (text) {
-        return '<button class="assistant-chip" data-assistant-ask="' + escapeHTML(text) + '">' + escapeHTML(text) + "</button>";
-    }).join("");
-    assistantSuggestions.setAttribute("aria-label", assistantLang === "ar" ? "أسئلة مقترحة" : "Suggested questions");
+// ---------- Quick actions (the buttons at the top of the panel) ----------
+const ASSISTANT_QUICK_CATEGORIES = {
+    pillows: "Sleeping Pillows",
+    blankets: "Blankets",
+    sheets: "Bed Sheets",
+    towels: "Towels"
+};
+
+function runAssistantQuickAction(id) {
+    const lang = assistantLang;
+    const T = ASSISTANT_TEXT[lang];
+    addAssistantUserMessage(T.quickLabels[id], lang);
+
+    if (id === "compare") {
+        showAssistantReply(buildCompareGuideReply(lang), lang);
+        return;
+    }
+    if (id === "budget") {
+        showAssistantReply(buildBudgetGuideReply(lang), lang);
+        return;
+    }
+
+    // A collection: answer in the chat with its products, and on larger screens
+    // also filter the shop behind the panel (on phones the panel covers the shop,
+    // so the "Show in shop" button in the answer does that instead).
+    const category = ASSISTANT_QUICK_CATEGORIES[id];
+    const items = products.filter(function (p) { return p.category === category; });
+    showAssistantReply({
+        html: T.categoryList(assistantCategoryLabel(category, lang), items.length),
+        products: items.map(function (p) { return { id: p.id }; }),
+        actions: [{ type: "shop", label: T.showInShop, category: category }]
+    }, lang);
+    assistantLastCategories = [category];
+    if (window.innerWidth > 700) {
+        applyShopFilters({ category: category });
+    }
 }
 
+// Same filters as the shop's own controls, then scroll to the collection
+function applyShopFilters(options) {
+    clearAllFilters();
+    if (options.min) {
+        priceMinInput.value = options.min;
+        minPrice = Number(options.min);
+    }
+    if (options.max) {
+        priceMaxInput.value = options.max;
+        maxPrice = Number(options.max);
+    }
+    if (options.sort) {
+        sortSelect.value = options.sort;
+        sortOrder = options.sort;
+    }
+    closeCheckout();
+    if (options.category) {
+        setCategory(options.category);
+    } else {
+        renderProducts();
+    }
+    document.getElementById("products").scrollIntoView();
+}
+
+// ---------- Language ----------
 function setAssistantLanguage(lang, announce) {
     const T = ASSISTANT_TEXT[lang];
     assistantLang = lang;
@@ -2287,12 +2423,16 @@ function setAssistantLanguage(lang, announce) {
     document.getElementById("assistant-input-label").textContent = T.inputLabel;
     assistantInput.placeholder = T.placeholder;
     document.getElementById("assistant-send").setAttribute("aria-label", T.send);
+    document.getElementById("assistant-send-text").textContent = T.sendText;
+    document.getElementById("assistant-quick-title").textContent = T.quickTitle;
+    document.querySelectorAll("[data-quick-label]").forEach(function (label) {
+        label.textContent = T.quickLabels[label.dataset.quickLabel];
+    });
     assistantCloseButton.setAttribute("aria-label", T.close);
     assistantLauncher.setAttribute("aria-label", assistantPanel.classList.contains("open") ? T.closeLauncher : T.openLauncher);
     assistantLangButtons.forEach(function (button) {
         button.setAttribute("aria-pressed", button.dataset.lang === lang);
     });
-    renderAssistantSuggestions();
     if (announce) {
         addAssistantBotMessage({ html: T.welcome }, lang);
     }
@@ -2305,7 +2445,6 @@ function openAssistant() {
     assistantLauncher.setAttribute("aria-label", ASSISTANT_TEXT[assistantLang].closeLauncher);
     if (!assistantStarted) {
         assistantStarted = true;
-        renderAssistantSuggestions();
         addAssistantBotMessage({ html: ASSISTANT_TEXT[assistantLang].welcome }, assistantLang);
     }
     assistantInput.focus({ preventScroll: true });
@@ -2352,11 +2491,24 @@ assistantForm.addEventListener("submit", function (event) {
     assistantInput.value = "";
 });
 
-// Suggested questions (below the chat and inside answers)
+// Quick actions at the top, and follow-up options inside answers
 assistantPanel.addEventListener("click", function (event) {
+    const quick = event.target.closest("[data-quick]");
+    if (quick) {
+        runAssistantQuickAction(quick.dataset.quick);
+        return;
+    }
     const chip = event.target.closest("[data-assistant-ask]");
     if (chip) {
         handleAssistantMessage(chip.dataset.assistantAsk);
+    }
+});
+
+// On phones the chat sits below the site header; using the header closes it,
+// so the menu, search, wishlist and cart are never hidden behind the chat
+siteHeader.addEventListener("click", function (event) {
+    if (window.innerWidth <= 700 && event.target.closest("a, button")) {
+        closeAssistant(false);
     }
 });
 
@@ -2373,36 +2525,24 @@ assistantMessages.addEventListener("click", function (event) {
         openProductModal(button.dataset.id);
     } else if (action === "add") {
         const product = findProduct(button.dataset.id);
+        if (button.classList.contains("added")) {
+            return;
+        }
         addToCart(product.id, 1);            // the same cart logic as the product cards
         showToast(T.toastAdded(product.name));
         button.textContent = T.added;
-        button.disabled = true;
+        button.classList.add("added");
         setTimeout(function () {
             button.textContent = T.add;
-            button.disabled = false;
+            button.classList.remove("added");
         }, 1200);
     } else if (action === "shop") {
-        // Apply the same filters in the shop, then scroll to it
-        clearAllFilters();
-        if (button.dataset.min) {
-            priceMinInput.value = button.dataset.min;
-            minPrice = Number(button.dataset.min);
-        }
-        if (button.dataset.max) {
-            priceMaxInput.value = button.dataset.max;
-            maxPrice = Number(button.dataset.max);
-        }
-        if (button.dataset.sort) {
-            sortSelect.value = button.dataset.sort;
-            sortOrder = button.dataset.sort;
-        }
-        closeCheckout();
-        if (button.dataset.category) {
-            setCategory(button.dataset.category);
-        } else {
-            renderProducts();
-        }
-        document.getElementById("products").scrollIntoView();
+        applyShopFilters({
+            category: button.dataset.category,
+            min: button.dataset.min,
+            max: button.dataset.max,
+            sort: button.dataset.sort
+        });
         if (window.innerWidth <= 700) {
             closeAssistant(false); // on phones the chat covers the shop
         }
@@ -2410,6 +2550,14 @@ assistantMessages.addEventListener("click", function (event) {
         compareList = button.dataset.ids.split(",").map(Number).slice(0, COMPARE_LIMIT);
         renderCompare();
         openCompare();
+    } else if (action === "compare-toggle") {
+        toggleCompare(button.dataset.id);    // the site's own comparison list (max 4)
+    } else if (action === "compare-open") {
+        if (compareList.length >= 2) {
+            openCompare();
+        } else {
+            showToast(T.compareNeedTwo);
+        }
     }
 });
 
