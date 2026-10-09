@@ -485,6 +485,7 @@ mobileWidth.addEventListener("change", function () {
 // =========================================================
 function openPanel(panel, overlay) {
     closeMobileMenu();
+    closeAssistant(false); // the assistant sits in the same corner, so it steps aside
     rememberFocus();
     panel.classList.add("open");
     overlay.classList.add("open");
@@ -1505,6 +1506,8 @@ document.addEventListener("keydown", function (event) {
         closeCart();
     } else if (wishlistPanel.classList.contains("open")) {
         closeWishlist();
+    } else if (assistantPanel.classList.contains("open")) {
+        closeAssistant();
     } else {
         closeMobileMenu();
     }
@@ -1533,6 +1536,882 @@ if ("IntersectionObserver" in window) {
         revealObserver.observe(element);
     });
 }
+
+
+// =========================================================
+// 15. HAVOME ASSISTANT: scripted bilingual shopping helper
+// =========================================================
+// How it works: each message is matched against simple keyword rules below
+// and answered with data from the real `products` list at the top of this file.
+// There is no AI model, no server and no API key: everything runs in the browser.
+// (A future AI version would need a secure backend or serverless function so
+// that no API key ever appears in these public files.)
+
+const assistantLauncher = document.getElementById("assistant-launcher");
+const assistantPanel = document.getElementById("assistant-panel");
+const assistantCloseButton = document.getElementById("assistant-close");
+const assistantMessages = document.getElementById("assistant-messages");
+const assistantSuggestions = document.getElementById("assistant-suggestions");
+const assistantForm = document.getElementById("assistant-form");
+const assistantInput = document.getElementById("assistant-input");
+const assistantLangButtons = document.querySelectorAll(".assistant-lang-btn");
+
+let assistantLang = "en";
+let assistantStarted = false;
+let assistantLastProducts = [];   // ids shown in the latest answer (for "compare these two")
+let assistantLastCategories = []; // categories from the latest product question (for follow-ups)
+
+// ---------- Category names in both languages ----------
+const ASSISTANT_CATEGORY_LABELS = {
+    "Sleeping Pillows": { en: "sleeping pillows", ar: "مخدات النوم" },
+    "Blankets": { en: "blankets", ar: "البطانيات" },
+    "Bed Sheets": { en: "bed sheets", ar: "الشراشف" },
+    "Duvet Covers": { en: "duvet covers", ar: "أغطية اللحاف" },
+    "Towels": { en: "towels", ar: "المناشف" },
+    "Home Accessories": { en: "home accessories", ar: "الإكسسوارات المنزلية" }
+};
+
+// ---------- Keyword rules ----------
+// Arabic words are matched after normalizing (أ/إ/آ → ا, ة → ه, ى → ي).
+// A word starting with "=" must match a whole word (so "حر" doesn't match "حرير").
+const ASSISTANT_CATEGORY_WORDS = {
+    "Sleeping Pillows": ["pillow", "مخد", "وساد", "وسايد"],
+    "Blankets": ["blanket", "throw", "بطاني", "=حرام", "حرامات"],
+    "Bed Sheets": ["sheet", "شرشف", "شراشف", "ملايه", "ملايات", "ملاءه"],
+    "Duvet Covers": ["duvet", "comforter", "quilt", "لحاف", "لحف", "دوفيه", "ديوفيه"],
+    "Towels": ["towel", "منشف", "مناشف", "بشكير", "بشاكير", "فوط"],
+    "Home Accessories": ["accessor", "candle", "diffuser", "vase", "cushion", "decor", "اكسسوار", "شمع", "معطر", "فازه", "مزهري", "ديكور", "كوشن"]
+};
+
+const ASSISTANT_WORDS = {
+    who: ["who are you", "=ai", "artificial intelligence", "=bot", "chatbot", "are you human", "real person", "robot", "chatgpt", "انت مين", "مين انت", "روبوت", "ذكاء", "=بوت", "انسان"],
+    thanks: ["thank", "=thx", "merci", "شكرا", "يسلمو", "تسلم", "ميرسي"],
+    greet: ["=hi", "=hello", "=hey", "good morning", "good evening", "مرحبا", "اهلا", "=هلا", "السلام", "صباح", "مسا", "كيفك"],
+    how: ["how", "where", "can i", "كيف", "شلون", "وين", "طريقه", "بقدر", "فيني", "كيفيه"],
+    cart: ["cart", "basket", "=bag", "سله", "عربه", "كارت"],
+    add: ["=add", "adding", "=put", "ضيف", "اضيف", "بضيف", "=حط", "اضافه"],
+    wishlist: ["wishlist", "wish list", "favorite", "favourite", "heart", "save for later", "مفضل", "قائمه الرغبات", "امنيات", "=قلب", "احفظ"],
+    compare: ["compare", "comparison", "difference", "=vs", "versus", "قارن", "مقارن", "فرق"],
+    better: ["better", "احسن", "افضل"],
+    payment: ["=pay", "payment", "=card", "=cash", "=دفع", "ادفع", "الدفع", "كاش", "بطاقه", "فيزا"],
+    checkout: ["checkout", "check out", "اتمام الطلب", "تشيك اوت"],
+    order: ["order", "=buy", "purchase", "whatsapp", "واتساب", "واتس", "وتساب", "اطلب", "بطلب", "=طلب", "الطلب", "شراء", "اشتري", "بشتري"],
+    delivery: ["delivery", "deliver", "shipping", "=ship", "توصيل", "ديليفري", "دليفري", "شحن"],
+    cheap: ["cheap", "affordable", "lowest", "inexpensive", "budget friendly", "ارخص", "رخيص", "اوفر", "اقتصادي"],
+    expensive: ["expensive", "priciest", "highest price", "luxury", "اغلى", "غالي"],
+    price: ["price", "cost", "how much", "سعر", "اسعار", "قديش", "بكم", "قداش"],
+    budgetMax: ["under", "below", "less than", "=max", "maximum", "up to", "within", "budget", "or less", "تحت", "اقل", "ضمن", "ميزانيه", "حدود", "=لحد"],
+    budgetMin: ["over", "above", "more than", "at least", "=فوق", "اكتر من", "اكثر من", "اعلى من"],
+    between: ["between", "from", "=بين", "=من"],
+    recommend: ["recommend", "suggest", "choose", "help me", "advice", "=best", "comfortable", "=good", "which", "انصح", "نصيحه", "اقترح", "اختار", "ساعد", "مريح", "منيح", "احسن", "افضل"],
+    available: ["in stock", "available", "availability", "=stock", "متوفر", "متاح", "بالمخزون"],
+    all: ["categories", "what do you sell", "what do you have", "all products", "catalog", "اقسام", "فئات", "شو عندكن", "شو بتبيعو", "كل المنتجات", "شو في عندكن"]
+};
+
+// Preferences → words to look for in product names and descriptions (real catalog text only)
+const ASSISTANT_PREFERENCES = [
+    { words: ["side", "neck", "shoulder", "جنب", "رقبه", "كتاف", "كتف"], terms: ["neck", "shoulder", "ergonomic", "support"] },
+    { words: ["soft", "silky", "smooth", "ناعم", "نعوم", "طري"], terms: ["soft", "silk", "buttery", "smooth"] },
+    { words: ["=cool", "=hot", "summer", "sweat", "breathable", "=حر", "شوب", "صيف", "تعرق", "منعش"], terms: ["cool", "breathable", "temperature", "warm sleepers", "airy"] },
+    { words: ["=warm", "warmth", "winter", "=cold", "cozy", "cosy", "دافي", "دفا", "دفي", "شتي", "شتاء", "=برد", "بارد"], terms: ["warmth", "wool", "cashmere", "winter"] },
+    { words: ["=hair", "=skin", "=شعر", "بشر"], terms: ["hair", "skin"] },
+    { words: ["washable", "easy care", "machine wash", "غسيل", "ينغسل", "بينغسل"], terms: ["washable", "wash"] }
+];
+
+// Arabic words for materials/items → English words used in our product names
+const ASSISTANT_ARABIC_TERMS = {
+    "حرير": "silk", "قطن": "cotton", "كتان": "linen", "صوف": "wool merino", "كشمير": "cashmere",
+    "بامبو": "bamboo", "خيزران": "bamboo", "ميموري": "memory foam", "فوم": "foam", "اسفنج": "foam",
+    "ريش": "down", "شمعه": "candle", "معطر": "diffuser", "فازه": "vase", "مزهريه": "vase",
+    "كوشن": "cushion", "تركي": "turkish", "فندق": "hotel", "ساتان": "sateen", "بيركال": "percale",
+    "وافل": "waffle", "عسلي": "honey", "فحمي": "charcoal", "سيراميك": "ceramic"
+};
+
+// Words in product names that are too general to identify one product
+const ASSISTANT_GENERIC_NAME_WORDS = ["pillow", "pillows", "pair", "blanket", "throw", "sheet", "set",
+    "duvet", "cover", "towel", "towels", "bath", "hand", "the", "and", "collection"];
+
+// ---------- All visible text, in both languages ----------
+const ASSISTANT_TEXT = {
+    en: {
+        dir: "ltr",
+        subtitle: "Quick answers from our catalog",
+        placeholder: "Ask about pillows, prices, orders...",
+        inputLabel: "Type your question",
+        send: "Send message",
+        close: "Close assistant",
+        openLauncher: "Open HAVOME Assistant",
+        closeLauncher: "Close HAVOME Assistant",
+        disclaimer: "Automated assistant with scripted answers. Not a live person or AI.",
+        welcome: "Welcome to HAVOME! How can I help you find the perfect bedding and home textiles?",
+        suggestions: ["Help me choose a pillow", "Show me blankets", "Show me affordable products", "How do I order?"],
+        view: "View product",
+        add: "Add to Cart",
+        added: "Added ✓",
+        showInShop: "Show in shop",
+        openCompare: "Open full comparison",
+        priceLabel: "Price",
+        categoryLabel: "Category",
+        detailsLabel: "Details",
+        toastAdded: function (name) { return name + " added to your cart"; },
+        categoriesIntro: "We have six categories. Tap one to explore it:",
+        categoryList: function (label, count) { return "Here are our " + label + " (" + count + " products):"; },
+        manyCategories: "Here are the products I found:",
+        cheapest: function (label, product) {
+            return (label ? "In our " + label + ", the most affordable is " : "Our most affordable product is ") +
+                "<strong>" + product.name + "</strong> at " + formatPrice(product.price) + ". From lowest price:";
+        },
+        expensive: function (label, product) {
+            return (label ? "In our " + label + ", the highest-priced is " : "Our highest-priced product is ") +
+                "<strong>" + product.name + "</strong> at " + formatPrice(product.price) + ":";
+        },
+        budget: function (label, budget) {
+            const what = label ? label.charAt(0).toUpperCase() + label.slice(1) : "Products";
+            if (budget.min !== null && budget.max !== null) return what + " between " + formatPrice(budget.min) + " and " + formatPrice(budget.max) + ", from lowest price:";
+            if (budget.min !== null) return what + " at " + formatPrice(budget.min) + " or more, from lowest price:";
+            return what + " at " + formatPrice(budget.max) + " or less, from lowest price:";
+        },
+        budgetNone: function (label) { return "I couldn't find " + (label || "products") + " in that price range in our catalog. Here is the lowest-priced option:"; },
+        showingSome: function (shown, total) { return "Showing " + shown + " of " + total + ". Tap “Show in shop” to see them all."; },
+        recommend: function (label) { return "Based on what you told me, these " + (label || "products") + " match best. The reason is taken from each product's description:"; },
+        recommendNone: function (label) { return "I couldn't match that preference to a specific product description, so here are all our " + (label || "products") + ":"; },
+        pillowGuide: "Happy to help you choose a pillow! Here are our four pillows. What matters most to you?",
+        pillowChips: ["I sleep on my side", "Something soft and silky", "Gentle on hair and skin", "Pillows under $100"],
+        namedOne: "Here's what I found:",
+        namedFound: "Here are the products you mentioned:",
+        namedMany: "I found a few matches. Which one do you mean?",
+        compareIntro: "Here's a side-by-side comparison using our catalog details:",
+        compareCheaper: function (product, diff) { return "<strong>" + product.name + "</strong> is " + formatPrice(diff) + " less."; },
+        compareSamePrice: "Both have the same price.",
+        compareNote: "I can only compare the information listed in our catalog.",
+        compareAsk: "Which two products would you like to compare? You can name them, for example “Cloud Down vs Mulberry Silk”, or use the compare button on the product cards.",
+        howCart: "<ol><li>Tap <strong>Add to Cart</strong> on any product, or open it with <strong>Quick view</strong>, choose the quantity and tap Add to Cart.</li><li>The bag icon at the top shows how many items are in your cart.</li><li>Tap it to review your cart, change quantities or remove items.</li></ol>",
+        howWishlist: "Tap the <strong>heart</strong> on a product photo, or <strong>Add to Wishlist</strong> in the product details, to save it. Open your saved items with the heart icon at the top; from there you can add them to your cart. Your wishlist is saved on this device.",
+        howCompare: "Tap the <strong>compare button</strong> (two arrows) on up to 4 products. A bar appears at the bottom; tap <strong>Compare now</strong> to see them side by side. I can also compare two products right here, just name them.",
+        howCheckout: "Open your cart (bag icon) and tap <strong>Checkout</strong>. Fill in your name, phone number, city and delivery address. The order summary shows your subtotal, delivery and total. No payment is taken on this website.",
+        howOrder: "<ol><li>Add your products to the cart.</li><li>Open the cart and tap <strong>Checkout</strong>.</li><li>Fill in your delivery details and tap <strong>Place Order via WhatsApp</strong>.</li><li>WhatsApp opens with your full order written out; press Send.</li></ol><p>Your order is confirmed once the HAVOME team replies to you.</p>",
+        orderNotReady: "<p>Note: WhatsApp ordering is still being set up on this website, so the last step isn't available yet. Your cart stays saved in the meantime.</p>",
+        deliveryUnknown: "The delivery fee isn't listed on the website yet. The HAVOME team confirms it on WhatsApp when you place your order.",
+        deliveryFree: "Delivery is free.",
+        deliveryFee: function (fee) { return "Delivery costs " + formatPrice(fee) + " and is added at checkout."; },
+        payment: "No payment is taken on this website. For payment questions, please ask the HAVOME team when they confirm your order.",
+        available: "Every product shown is part of our current catalog, but the website doesn't track live stock levels. The HAVOME team will confirm availability when you order.",
+        who: "I'm HAVOME's automated shopping assistant. I answer using scripted rules and our product catalog. I'm not a live person or an AI model.",
+        greeting: "Hello! I can help you find pillows, blankets, sheets, duvet covers, towels and home accessories, check prices, or explain how ordering works.",
+        thanks: "You're welcome! Is there anything else I can help you with?",
+        priceRange: function (min, max) { return "Our prices range from " + formatPrice(min) + " to " + formatPrice(max) + ". Which product or category would you like prices for?"; },
+        fallback: "Sorry, I didn't quite understand. I can help with product categories, prices and budgets, recommendations, comparing products, and how the cart, wishlist and ordering work. Try one of the suggestions below."
+    },
+    ar: {
+        dir: "rtl",
+        subtitle: "إجابات سريعة من كتالوجنا",
+        placeholder: "اسأل عن المخدات، الأسعار، الطلب...",
+        inputLabel: "اكتب سؤالك",
+        send: "إرسال الرسالة",
+        close: "إغلاق المساعد",
+        openLauncher: "افتح مساعد HAVOME",
+        closeLauncher: "إغلاق مساعد HAVOME",
+        disclaimer: "مساعد آلي بإجابات مبرمجة مسبقًا. مش شخص حقيقي ولا ذكاء اصطناعي.",
+        welcome: "أهلًا وسهلًا في HAVOME! 🛏️ كيف فينا نساعدك تختار المنتجات المناسبة لراحتك؟",
+        suggestions: ["ساعدني اختار مخدة", "ورجيني البطانيات", "شو المنتجات الأرخص؟", "كيف بطلب؟"],
+        view: "عرض المنتج",
+        add: "أضف إلى السلة",
+        added: "تمت الإضافة ✓",
+        showInShop: "عرض بالمتجر",
+        openCompare: "فتح المقارنة الكاملة",
+        priceLabel: "السعر",
+        categoryLabel: "الفئة",
+        detailsLabel: "التفاصيل",
+        toastAdded: function (name) { return "انضاف " + name + " عالسلة"; },
+        categoriesIntro: "عنا ست فئات. اختار وحدة لتشوف منتجاتها:",
+        categoryList: function (label, count) { return "هيدي " + label + " عنا (" + count + " منتجات):"; },
+        manyCategories: "هيدي المنتجات اللي لقيتها:",
+        cheapest: function (label, product) {
+            return "الأرخص من " + (label || "منتجاتنا") + " هو <strong><bdi>" + product.name + "</bdi></strong> بسعر <bdi>" + formatPrice(product.price) + "</bdi>. من الأقل سعرًا:";
+        },
+        expensive: function (label, product) {
+            return "الأعلى سعرًا من " + (label || "منتجاتنا") + " هو <strong><bdi>" + product.name + "</bdi></strong> بسعر <bdi>" + formatPrice(product.price) + "</bdi>:";
+        },
+        budget: function (label, budget) {
+            const what = label || "المنتجات";
+            if (budget.min !== null && budget.max !== null) return what + " بين <bdi>" + formatPrice(budget.min) + "</bdi> و<bdi>" + formatPrice(budget.max) + "</bdi>، من الأقل سعرًا:";
+            if (budget.min !== null) return what + " بسعر <bdi>" + formatPrice(budget.min) + "</bdi> أو أكثر، من الأقل سعرًا:";
+            return what + " بسعر <bdi>" + formatPrice(budget.max) + "</bdi> أو أقل، من الأقل سعرًا:";
+        },
+        budgetNone: function (label) { return "ما لقيت " + (label || "منتجات") + " ضمن هالسعر بكتالوجنا. هيدا الخيار الأقل سعرًا:"; },
+        showingSome: function (shown, total) { return "عم نعرض " + shown + " من " + total + ". اكبس «عرض بالمتجر» لتشوفهن كلهن."; },
+        recommend: function (label) { return "حسب طلبك، هيدي أنسب " + (label || "المنتجات") + ". السبب مأخوذ من وصف كل منتج (بالإنكليزي):"; },
+        recommendNone: function (label) { return "ما قدرت لاقي وصف منتج بيطابق طلبك بالضبط، فهيدي كل " + (label || "المنتجات") + ":"; },
+        pillowGuide: "أكيد! هيدي المخدات الأربعة عنا. شو أهم شي بالنسبة إلك؟",
+        pillowChips: ["بنام على جنبي", "بدي شي ناعم", "لطيفة عالشعر والبشرة", "مخدات تحت 100 دولار"],
+        namedOne: "هيدا اللي لقيته:",
+        namedFound: "هيدي المنتجات اللي ذكرتها:",
+        namedMany: "لقيت أكتر من منتج. أي واحد بتقصد؟",
+        compareIntro: "هيدي مقارنة حسب المعلومات الموجودة بكتالوجنا:",
+        compareCheaper: function (product, diff) { return "<strong><bdi>" + product.name + "</bdi></strong> أرخص بـ<bdi>" + formatPrice(diff) + "</bdi>."; },
+        compareSamePrice: "السعرين متل بعض.",
+        compareNote: "بقدر قارن بس المعلومات الموجودة بالكتالوج.",
+        compareAsk: "أي منتجين بدك نقارن؟ فيك تكتب أسماءهن، مثلًا «Cloud Down و Mulberry Silk»، أو تستعمل زر المقارنة عالمنتجات.",
+        howCart: "<ol><li>اكبس <strong>«Add to Cart»</strong> على أي منتج، أو افتحه بـ<strong>«Quick view»</strong>، اختار الكمية واكبس «Add to Cart».</li><li>أيقونة الشنتة فوق بتوريك كم منتج بسلتك.</li><li>اكبس عليها لتراجع السلة، تغيّر الكميات أو تشيل منتج.</li></ol>",
+        howWishlist: "اكبس عـ<strong>القلب</strong> على صورة المنتج، أو <strong>«Add to Wishlist»</strong> بتفاصيل المنتج، لتحفظه. بتلاقي المحفوظات بأيقونة القلب فوق، ومنها فيك تضيفهن عالسلة. قائمتك بتنحفظ على هالجهاز.",
+        howCompare: "اكبس <strong>زر المقارنة</strong> (السهمين) على لحد 4 منتجات. رح يطلع شريط تحت، اكبس <strong>«Compare now»</strong> لتشوفهن جنب بعض. وفيني قارن منتجين هون كمان، بس اكتبلي أسماءهن.",
+        howCheckout: "افتح السلة (أيقونة الشنتة) واكبس <strong>«Checkout»</strong>. عبّي اسمك، رقم تلفونك، المدينة وعنوان التوصيل، وبتشوف المجموع والتوصيل والإجمالي. ما في دفع على هالموقع.",
+        howOrder: "<ol><li>ضيف المنتجات عالسلة.</li><li>افتح السلة واكبس <strong>«Checkout»</strong>.</li><li>عبّي معلومات التوصيل واكبس <strong>«Place Order via WhatsApp»</strong>.</li><li>بيفتح واتساب والطلب مكتوب كامل، بس اكبس إرسال.</li></ol><p>طلبك بيتأكد لما فريق HAVOME يرد عليك.</p>",
+        orderNotReady: "<p>ملاحظة: الطلب عبر واتساب لسا عم يتجهّز عالموقع، فالخطوة الأخيرة مش متاحة هلأ. سلتك بتضل محفوظة.</p>",
+        deliveryUnknown: "رسم التوصيل مش محدد عالموقع بعد. فريق HAVOME بيأكدلك ياه عواتساب لما تطلب.",
+        deliveryFree: "التوصيل مجاني.",
+        deliveryFee: function (fee) { return "رسم التوصيل <bdi>" + formatPrice(fee) + "</bdi> وبينضاف عند إتمام الطلب."; },
+        payment: "ما في دفع على هالموقع. لأي سؤال عن الدفع، اسأل فريق HAVOME لما يأكدلك الطلب.",
+        available: "كل المنتجات المعروضة من كتالوجنا الحالي، بس الموقع ما بيتابع المخزون مباشرة. فريق HAVOME بيأكدلك التوفر لما تطلب.",
+        who: "أنا مساعد التسوق الآلي تبع HAVOME. بجاوب من قواعد مبرمجة مسبقًا ومن كتالوج منتجاتنا. أنا مش شخص حقيقي ولا نموذج ذكاء اصطناعي.",
+        greeting: "أهلا فيك! فيني ساعدك تلاقي مخدات، بطانيات، شراشف، أغطية لحاف، مناشف وإكسسوارات، تشوف الأسعار، أو أشرحلك كيف تطلب.",
+        thanks: "تكرم! في شي تاني فيني ساعدك فيه؟",
+        priceRange: function (min, max) { return "أسعارنا بين <bdi>" + formatPrice(min) + "</bdi> و<bdi>" + formatPrice(max) + "</bdi>. سعر أي منتج أو فئة بدك تعرف؟"; },
+        fallback: "عذرًا، ما فهمت عليك منيح. فيني ساعدك بالفئات، الأسعار والميزانية، الاقتراحات، مقارنة المنتجات، وكيف تستعمل السلة والمفضلة والطلب. جرّب وحدة من الاقتراحات تحت."
+    }
+};
+
+// ---------- Text helpers ----------
+function escapeHTML(value) {
+    return String(value)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+// Lowercase, simplify Arabic spelling variants, convert Arabic digits, drop punctuation
+function normalizeAssistantText(text) {
+    return text.toLowerCase()
+        .replace(/[ً-ٰٟـ]/g, "")
+        .replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي")
+        .replace(/ؤ/g, "و").replace(/ئ/g, "ي")
+        .replace(/[٠-٩]/g, function (d) { return String(d.charCodeAt(0) - 1632); })
+        .replace(/[۰-۹]/g, function (d) { return String(d.charCodeAt(0) - 1776); })
+        .replace(/[،؟?!,;:()"'“”«»]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+// Arabic if the message contains Arabic words. Arabic speakers often type our
+// English product names ("قارن Cloud Down و Mulberry Silk"), so a few Arabic
+// letters are enough; English messages contain no Arabic letters at all.
+function detectAssistantLanguage(text) {
+    const arabic = (text.match(/[ء-ي]/g) || []).length;
+    const latin = (text.match(/[a-z]/gi) || []).length;
+    if (arabic === 0 && latin === 0) {
+        return assistantLang;   // e.g. only numbers or emoji: keep the current language
+    }
+    return arabic >= 3 || arabic >= latin ? "ar" : "en";
+}
+
+// A word with common Arabic prefixes removed: "بالمخده" → "مخده", "والبشره" → "بشره"
+function arabicWordForms(word) {
+    const forms = [word];
+    ["وال", "بال", "عال", "لل", "ال", "و", "ب", "ل", "ع"].forEach(function (prefix) {
+        if (word.startsWith(prefix) && word.length > prefix.length + 1) {
+            forms.push(word.slice(prefix.length));
+        }
+    });
+    return forms;
+}
+
+// Does the normalized message contain this keyword? (see the "=" rule above)
+function assistantHasWord(text, words, keyword) {
+    const exact = keyword.startsWith("=");
+    const term = exact ? keyword.slice(1) : keyword;
+    if (/[a-z]/.test(term)) {
+        const ending = exact ? "(?![a-z])" : "";
+        return new RegExp("(^|[^a-z])" + term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ending).test(text);
+    }
+    if (exact) {
+        return words.some(function (word) { return arabicWordForms(word).includes(term); });
+    }
+    return text.includes(term);
+}
+
+function assistantMatches(query, list) {
+    return list.some(function (keyword) {
+        return assistantHasWord(query.text, query.words, keyword);
+    });
+}
+
+// Lowercase in English sentences ("our blankets"), Arabic name in Arabic
+function assistantCategoryLabel(category, lang) {
+    return ASSISTANT_CATEGORY_LABELS[category] ? ASSISTANT_CATEGORY_LABELS[category][lang] : category;
+}
+
+// As a label on its own (cards, tables): "Blankets" / "البطانيات"
+function assistantCategoryTitle(category, lang) {
+    return lang === "en" ? category : assistantCategoryLabel(category, lang);
+}
+
+// ---------- Understanding a message ----------
+function analyzeAssistantMessage(rawText) {
+    let text = normalizeAssistantText(rawText);
+    const warmSleeper = /\b(warm|hot) sleeper/.test(text);
+    text = text.replace(/\b(warm|hot) sleepers?/g, " cool ").replace(/bath sheets?/g, " towel ");
+    const words = text.split(" ");
+    const query = { text: text, words: words };
+
+    const categories = Object.keys(ASSISTANT_CATEGORY_WORDS).filter(function (category) {
+        return assistantMatches(query, ASSISTANT_CATEGORY_WORDS[category]);
+    });
+
+    // Add English equivalents of Arabic material words, for matching product names
+    const translated = Object.keys(ASSISTANT_ARABIC_TERMS).filter(function (term) {
+        return text.includes(term);
+    }).map(function (term) { return ASSISTANT_ARABIC_TERMS[term]; }).join(" ");
+    const searchText = text + " " + translated;
+
+    const preferences = ASSISTANT_PREFERENCES.filter(function (preference) {
+        return assistantMatches(query, preference.words);
+    });
+    if (warmSleeper && !preferences.includes(ASSISTANT_PREFERENCES[2])) {
+        preferences.push(ASSISTANT_PREFERENCES[2]);
+    }
+
+    const numbers = (text.match(/\d+(\.\d+)?/g) || []).map(Number);
+
+    return {
+        query: query,
+        has: function (key) { return assistantMatches(query, ASSISTANT_WORDS[key]); },
+        categories: categories,
+        named: findAssistantNamedProducts(searchText),
+        preferences: preferences,
+        numbers: numbers
+    };
+}
+
+// Products whose distinctive name words appear in the message, best matches first
+function findAssistantNamedProducts(searchText) {
+    return products.map(function (product) {
+        const nameWords = product.name.toLowerCase().replace(/&/g, " ").split(/\s+/).filter(function (word) {
+            return word.length >= 3 && !ASSISTANT_GENERIC_NAME_WORDS.includes(word);
+        });
+        const score = nameWords.filter(function (word) {
+            return new RegExp("(^|[^a-z])" + word).test(searchText);
+        }).length;
+        return { product: product, score: score };
+    }).filter(function (match) {
+        return match.score > 0;
+    }).sort(function (a, b) {
+        return b.score - a.score;
+    });
+}
+
+// "under $150" → { min: null, max: 150 }; "between 50 and 100" → { min: 50, max: 100 }
+function parseAssistantBudget(analysis) {
+    const numbers = analysis.numbers;
+    if (numbers.length === 0) {
+        return null;
+    }
+    const mentionsMoney = /\$|dollar|usd|دولار/.test(analysis.query.text);
+    const mentionsLimit = analysis.has("budgetMax") || analysis.has("budgetMin");
+    if (!mentionsMoney && !mentionsLimit && numbers[0] < 10) {
+        return null; // probably a quantity like "2 towels", not a price
+    }
+    if (numbers.length >= 2 && analysis.has("between")) {
+        return { min: Math.min(numbers[0], numbers[1]), max: Math.max(numbers[0], numbers[1]) };
+    }
+    if (analysis.has("budgetMin")) {
+        return { min: numbers[0], max: null };
+    }
+    return { min: null, max: numbers[0] };
+}
+
+function withinBudget(product, budget) {
+    return (budget.min === null || product.price >= budget.min) &&
+        (budget.max === null || product.price <= budget.max);
+}
+
+function sortByPrice(list, direction) {
+    return list.slice().sort(function (a, b) {
+        return direction === "desc" ? b.price - a.price : a.price - b.price;
+    });
+}
+
+// The sentence from a product's description that explains a recommendation
+function findReasonSentence(product, terms) {
+    const sentences = product.description.split(/\.\s+/);
+    const match = sentences.find(function (sentence) {
+        const lower = sentence.toLowerCase();
+        return terms.some(function (term) { return lower.includes(term); });
+    });
+    return match ? match.replace(/\.$/, "") + "." : "";
+}
+
+// ---------- Building a reply ----------
+// A reply is: { html, products: [{ id, reason }], table, actions: [...], chips: [...] }
+function buildAssistantReply(rawText, lang) {
+    const T = ASSISTANT_TEXT[lang];
+    const a = analyzeAssistantMessage(rawText);
+    const namedProducts = a.named.map(function (match) { return match.product; });
+    const bestScore = a.named.length ? a.named[0].score : 0;
+    const bestMatches = a.named.filter(function (match) { return match.score === bestScore; }).map(function (match) { return match.product; });
+    const asCards = function (list) { return list.map(function (product) { return { id: product.id }; }); };
+
+    if (a.categories.length) {
+        assistantLastCategories = a.categories;
+    }
+
+    // 1. About the assistant itself
+    if (a.has("who")) {
+        return { html: T.who };
+    }
+    if (a.has("thanks") && a.query.text.length < 30) {
+        return { html: T.thanks };
+    }
+
+    // 2. How the website works
+    if (a.has("delivery")) {
+        const fee = getDeliveryFee();
+        return { html: fee === null ? T.deliveryUnknown : fee === 0 ? T.deliveryFree : T.deliveryFee(fee) };
+    }
+    if (a.has("wishlist")) {
+        return { html: T.howWishlist };
+    }
+    if (a.has("cart") && (a.has("how") || a.has("add"))) {
+        return { html: T.howCart, products: bestMatches.length === 1 ? asCards(bestMatches) : [] };
+    }
+    if (a.has("compare") && a.has("how") && namedProducts.length < 2) {
+        return { html: T.howCompare };
+    }
+    if (a.has("payment")) {
+        return { html: T.payment };
+    }
+    if (a.has("checkout")) {
+        return { html: T.howCheckout };
+    }
+    if (a.has("order")) {
+        return {
+            html: T.howOrder + (getWhatsAppNumber() === "" ? T.orderNotReady : ""),
+            products: bestMatches.length === 1 ? asCards(bestMatches) : []
+        };
+    }
+
+    // 3. Comparing products
+    if (a.has("compare") || (a.has("better") && namedProducts.length >= 2)) {
+        return buildCompareReply(a, namedProducts, lang);
+    }
+
+    // 4. Stock questions: honest, the site has no live stock data
+    if (a.has("available")) {
+        return { html: T.available, products: asCards(bestMatches.slice(0, 3)) };
+    }
+
+    // 5. Finding products
+    const budget = parseAssistantBudget(a);
+    const wantsCheap = a.has("cheap");
+    const wantsExpensive = a.has("expensive");
+    const categories = a.categories.length ? a.categories :
+        (a.preferences.length ? assistantLastCategories : []);
+    const pool = categories.length ? products.filter(function (p) { return categories.includes(p.category); }) : products.slice();
+    const label = categories.length === 1 ? assistantCategoryLabel(categories[0], lang) : null;
+    const shopAction = function (extra) {
+        return Object.assign({ type: "shop", label: T.showInShop, category: categories.length === 1 ? categories[0] : "" }, extra || {});
+    };
+
+    // A specific product by name (e.g. "silk pillow", "reed diffuser")
+    if (bestMatches.length && !budget && !wantsCheap && !wantsExpensive && !a.preferences.length) {
+        let matches = bestMatches;
+        if (categories.length) {
+            const inCategory = matches.filter(function (p) { return categories.includes(p.category); });
+            if (inCategory.length) {
+                matches = inCategory;
+            }
+        }
+        // Several products that each matched by one shared word (e.g. "waffle") → ask which one.
+        // Several products each named more specifically (e.g. "cloud down and mulberry silk") → show them.
+        const intro = matches.length === 1 ? T.namedOne : (bestScore >= 2 ? T.namedFound : T.namedMany);
+        return { html: intro, products: asCards(matches.slice(0, 4)) };
+    }
+
+    // Preferences (side sleeper, soft, cool, warm...) → score by real description text
+    if (a.preferences.length) {
+        const terms = [];
+        a.preferences.forEach(function (preference) { terms.push.apply(terms, preference.terms); });
+        const candidates = budget ? pool.filter(function (p) { return withinBudget(p, budget); }) : pool;
+        const scored = candidates.map(function (product) {
+            const text = (product.name + " " + product.description).toLowerCase();
+            const hits = terms.filter(function (term) { return text.includes(term); });
+            return { product: product, score: hits.length };
+        }).filter(function (match) { return match.score > 0; }).sort(function (x, y) {
+            return y.score - x.score || x.product.price - y.product.price;
+        }).slice(0, 3);
+
+        if (scored.length) {
+            return {
+                html: T.recommend(label),
+                products: scored.map(function (match) {
+                    return { id: match.product.id, reason: findReasonSentence(match.product, terms) };
+                })
+            };
+        }
+        return { html: T.recommendNone(label), products: asCards(candidates.slice(0, 6)), actions: [shopAction()] };
+    }
+
+    // Budget ("under $150", "between 50 and 100")
+    if (budget) {
+        const matches = sortByPrice(pool.filter(function (p) { return withinBudget(p, budget); }), "asc");
+        if (matches.length === 0) {
+            return { html: T.budgetNone(label), products: asCards(sortByPrice(pool, "asc").slice(0, 1)) };
+        }
+        const shown = matches.slice(0, 6);
+        return {
+            html: T.budget(label, budget) + (matches.length > shown.length ? "<p>" + T.showingSome(shown.length, matches.length) + "</p>" : ""),
+            products: asCards(shown),
+            actions: [shopAction({ min: budget.min, max: budget.max, sort: "price-asc" })]
+        };
+    }
+
+    // Cheapest / most expensive
+    if (wantsCheap || wantsExpensive) {
+        const sorted = sortByPrice(pool, wantsExpensive ? "desc" : "asc");
+        const shown = sorted.slice(0, categories.length ? 3 : 4);
+        return {
+            html: wantsExpensive ? T.expensive(label, sorted[0]) : T.cheapest(label, sorted[0]),
+            products: asCards(shown),
+            actions: [shopAction({ sort: wantsExpensive ? "price-desc" : "price-asc" })]
+        };
+    }
+
+    // "Help me choose a pillow": show the pillows and ask what matters
+    if (categories.length === 1 && categories[0] === "Sleeping Pillows" && a.has("recommend")) {
+        return { html: T.pillowGuide, products: asCards(pool), chips: T.pillowChips };
+    }
+
+    // A category ("show me blankets", "مناشف")
+    if (categories.length) {
+        return {
+            html: categories.length === 1 ? T.categoryList(label, pool.length) : T.manyCategories,
+            products: asCards(pool.slice(0, 8)),
+            actions: categories.length === 1 ? [shopAction()] : []
+        };
+    }
+
+    // "What do you sell?"
+    if (a.has("all")) {
+        return {
+            html: T.categoriesIntro,
+            chips: Object.keys(ASSISTANT_CATEGORY_LABELS).map(function (category) {
+                return assistantCategoryTitle(category, lang);
+            })
+        };
+    }
+
+    if (a.has("greet")) {
+        return { html: T.greeting, chips: T.suggestions };
+    }
+
+    if (a.has("price")) {
+        const prices = products.map(function (p) { return p.price; });
+        return { html: T.priceRange(Math.min.apply(null, prices), Math.max.apply(null, prices)) };
+    }
+
+    return { html: T.fallback };
+}
+
+// Comparison using only real catalog fields (name, category, price, description)
+function buildCompareReply(a, namedProducts, lang) {
+    const T = ASSISTANT_TEXT[lang];
+    let selected = namedProducts.slice(0, 3);
+
+    // "Compare these two" → the two products shown in the previous answer
+    if (selected.length < 2) {
+        const recent = assistantLastProducts.map(findProduct).filter(function (p) {
+            return p && (!a.categories.length || a.categories.includes(p.category));
+        });
+        if (recent.length === 2) {
+            selected = recent;
+        }
+    }
+
+    if (selected.length < 2) {
+        const category = a.categories[0] || assistantLastCategories[0];
+        const options = category ? products.filter(function (p) { return p.category === category; }) : [];
+        return { html: T.compareAsk, products: options.map(function (p) { return { id: p.id }; }) };
+    }
+
+    const sorted = sortByPrice(selected, "asc");
+    const cheapest = sorted[0];
+    const priciest = sorted[sorted.length - 1];
+    const priceNote = cheapest.price === priciest.price ? T.compareSamePrice :
+        T.compareCheaper(cheapest, priciest.price - cheapest.price);
+
+    const headerCells = selected.map(function (p) { return '<th scope="col" dir="ltr">' + escapeHTML(p.name) + "</th>"; }).join("");
+    const row = function (heading, render) {
+        return '<tr><th scope="row">' + heading + "</th>" + selected.map(function (p) { return "<td>" + render(p) + "</td>"; }).join("") + "</tr>";
+    };
+    const table = '<table class="assistant-compare"><thead><tr><td></td>' + headerCells + "</tr></thead><tbody>" +
+        row(T.priceLabel, function (p) { return "<bdi>" + formatPrice(p.price) + "</bdi>"; }) +
+        row(T.categoryLabel, function (p) { return assistantCategoryTitle(p.category, lang); }) +
+        row(T.detailsLabel, function (p) { return '<span lang="en" dir="ltr">' + escapeHTML(p.description) + "</span>"; }) +
+        "</tbody></table>";
+
+    return {
+        html: T.compareIntro,
+        table: table,
+        after: "<p>" + priceNote + "</p><p>" + T.compareNote + "</p>",
+        actions: [{ type: "compare", label: T.openCompare, ids: selected.map(function (p) { return p.id; }).join(",") }],
+        rememberIds: selected.map(function (p) { return p.id; })
+    };
+}
+
+// ---------- Showing messages ----------
+function scrollAssistantToBottom() {
+    assistantMessages.scrollTop = assistantMessages.scrollHeight;
+}
+
+function addAssistantUserMessage(text, lang) {
+    const message = document.createElement("div");
+    message.className = "assistant-message from-user";
+    message.lang = lang;
+    message.dir = ASSISTANT_TEXT[lang].dir;
+    const bubble = document.createElement("div");
+    bubble.className = "assistant-bubble";
+    bubble.textContent = text;   // shopper text is always shown as plain text
+    message.appendChild(bubble);
+    assistantMessages.appendChild(message);
+    scrollAssistantToBottom();
+}
+
+function renderAssistantProductCard(item, lang) {
+    const T = ASSISTANT_TEXT[lang];
+    const product = findProduct(item.id);
+    if (!product) {
+        return "";
+    }
+    const reason = item.reason ? '<p class="assistant-product-reason" lang="en" dir="ltr">“' + escapeHTML(item.reason) + "”</p>" : "";
+    return `
+        <div class="assistant-product">
+            <img src="${product.image}" alt="${escapeHTML(product.alt)}" loading="lazy">
+            <div class="assistant-product-info">
+                <p class="assistant-product-name" dir="ltr">${escapeHTML(product.name)}</p>
+                <p class="assistant-product-meta">${assistantCategoryTitle(product.category, lang)} · <bdi>${formatPrice(product.price)}</bdi></p>
+                ${reason}
+                <div class="assistant-product-actions">
+                    <button class="assistant-action" data-assistant-action="view" data-id="${product.id}">${T.view}</button>
+                    <button class="assistant-action primary" data-assistant-action="add" data-id="${product.id}">${T.add}</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function addAssistantBotMessage(reply, lang) {
+    const message = document.createElement("div");
+    message.className = "assistant-message from-bot";
+    message.lang = lang;
+    message.dir = ASSISTANT_TEXT[lang].dir;
+
+    let html = '<div class="assistant-bubble">' + reply.html + (reply.table || "") + (reply.after || "") + "</div>";
+
+    if (reply.products && reply.products.length) {
+        html += '<div class="assistant-products">' + reply.products.map(function (item) {
+            return renderAssistantProductCard(item, lang);
+        }).join("") + "</div>";
+    }
+
+    if (reply.actions && reply.actions.length) {
+        html += '<div class="assistant-actions">' + reply.actions.map(function (action) {
+            return '<button class="assistant-action" data-assistant-action="' + action.type + '"' +
+                (action.category !== undefined ? ' data-category="' + escapeHTML(action.category) + '"' : "") +
+                (action.min !== undefined && action.min !== null ? ' data-min="' + action.min + '"' : "") +
+                (action.max !== undefined && action.max !== null ? ' data-max="' + action.max + '"' : "") +
+                (action.sort ? ' data-sort="' + action.sort + '"' : "") +
+                (action.ids ? ' data-ids="' + action.ids + '"' : "") +
+                ">" + action.label + "</button>";
+        }).join("") + "</div>";
+    }
+
+    if (reply.chips && reply.chips.length) {
+        html += '<div class="assistant-actions">' + reply.chips.map(function (chip) {
+            return '<button class="assistant-chip" data-assistant-ask="' + escapeHTML(chip) + '">' + escapeHTML(chip) + "</button>";
+        }).join("") + "</div>";
+    }
+
+    message.innerHTML = html;
+    assistantMessages.appendChild(message);
+
+    // Remember what was shown, for follow-ups like "compare these two"
+    if (reply.rememberIds) {
+        assistantLastProducts = reply.rememberIds;
+    } else if (reply.products && reply.products.length) {
+        assistantLastProducts = reply.products.map(function (item) { return item.id; });
+    }
+
+    scrollAssistantToBottom();
+}
+
+// Shopper sends a message: show it, a short "typing" pause, then the answer
+function handleAssistantMessage(rawText) {
+    const text = rawText.trim();
+    if (text === "") {
+        return;
+    }
+    const lang = detectAssistantLanguage(text);
+    if (lang !== assistantLang) {
+        setAssistantLanguage(lang, false);
+    }
+    addAssistantUserMessage(text, lang);
+
+    const reply = buildAssistantReply(text, lang);
+    const typing = document.createElement("div");
+    typing.className = "assistant-message from-bot assistant-typing";
+    typing.setAttribute("aria-hidden", "true");
+    typing.innerHTML = '<div class="assistant-bubble"><span></span><span></span><span></span></div>';
+    assistantMessages.appendChild(typing);
+    scrollAssistantToBottom();
+
+    setTimeout(function () {
+        typing.remove();
+        addAssistantBotMessage(reply, lang);
+    }, 350);
+}
+
+// ---------- Language ----------
+function renderAssistantSuggestions() {
+    const T = ASSISTANT_TEXT[assistantLang];
+    assistantSuggestions.innerHTML = T.suggestions.map(function (text) {
+        return '<button class="assistant-chip" data-assistant-ask="' + escapeHTML(text) + '">' + escapeHTML(text) + "</button>";
+    }).join("");
+    assistantSuggestions.setAttribute("aria-label", assistantLang === "ar" ? "أسئلة مقترحة" : "Suggested questions");
+}
+
+function setAssistantLanguage(lang, announce) {
+    const T = ASSISTANT_TEXT[lang];
+    assistantLang = lang;
+    assistantPanel.dir = T.dir;
+    assistantPanel.lang = lang;
+    document.getElementById("assistant-subtitle").textContent = T.subtitle;
+    document.getElementById("assistant-disclaimer").textContent = T.disclaimer;
+    document.getElementById("assistant-input-label").textContent = T.inputLabel;
+    assistantInput.placeholder = T.placeholder;
+    document.getElementById("assistant-send").setAttribute("aria-label", T.send);
+    assistantCloseButton.setAttribute("aria-label", T.close);
+    assistantLauncher.setAttribute("aria-label", assistantPanel.classList.contains("open") ? T.closeLauncher : T.openLauncher);
+    assistantLangButtons.forEach(function (button) {
+        button.setAttribute("aria-pressed", button.dataset.lang === lang);
+    });
+    renderAssistantSuggestions();
+    if (announce) {
+        addAssistantBotMessage({ html: T.welcome }, lang);
+    }
+}
+
+// ---------- Open / close ----------
+function openAssistant() {
+    assistantPanel.classList.add("open");
+    assistantLauncher.setAttribute("aria-expanded", "true");
+    assistantLauncher.setAttribute("aria-label", ASSISTANT_TEXT[assistantLang].closeLauncher);
+    if (!assistantStarted) {
+        assistantStarted = true;
+        renderAssistantSuggestions();
+        addAssistantBotMessage({ html: ASSISTANT_TEXT[assistantLang].welcome }, assistantLang);
+    }
+    assistantInput.focus({ preventScroll: true });
+}
+
+// returnFocus = false when another panel is opening and takes the focus
+function closeAssistant(returnFocus) {
+    if (!assistantPanel.classList.contains("open")) {
+        return;
+    }
+    const hadFocus = assistantPanel.contains(document.activeElement);
+    assistantPanel.classList.remove("open");
+    assistantLauncher.setAttribute("aria-expanded", "false");
+    assistantLauncher.setAttribute("aria-label", ASSISTANT_TEXT[assistantLang].openLauncher);
+    if (returnFocus !== false && hadFocus) {
+        assistantLauncher.focus({ preventScroll: true });
+    }
+}
+
+assistantLauncher.addEventListener("click", function () {
+    if (assistantPanel.classList.contains("open")) {
+        closeAssistant();
+    } else {
+        openAssistant();
+    }
+});
+
+assistantCloseButton.addEventListener("click", function () {
+    closeAssistant();
+});
+
+assistantLangButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+        if (button.dataset.lang !== assistantLang) {
+            setAssistantLanguage(button.dataset.lang, true);
+        }
+    });
+});
+
+// Enter (or the Send button) sends the message
+assistantForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    handleAssistantMessage(assistantInput.value);
+    assistantInput.value = "";
+});
+
+// Suggested questions (below the chat and inside answers)
+assistantPanel.addEventListener("click", function (event) {
+    const chip = event.target.closest("[data-assistant-ask]");
+    if (chip) {
+        handleAssistantMessage(chip.dataset.assistantAsk);
+    }
+});
+
+// Buttons inside answers reuse the website's own features
+assistantMessages.addEventListener("click", function (event) {
+    const button = event.target.closest("[data-assistant-action]");
+    if (!button) {
+        return;
+    }
+    const action = button.dataset.assistantAction;
+    const T = ASSISTANT_TEXT[assistantLang];
+
+    if (action === "view") {
+        openProductModal(button.dataset.id);
+    } else if (action === "add") {
+        const product = findProduct(button.dataset.id);
+        addToCart(product.id, 1);            // the same cart logic as the product cards
+        showToast(T.toastAdded(product.name));
+        button.textContent = T.added;
+        button.disabled = true;
+        setTimeout(function () {
+            button.textContent = T.add;
+            button.disabled = false;
+        }, 1200);
+    } else if (action === "shop") {
+        // Apply the same filters in the shop, then scroll to it
+        clearAllFilters();
+        if (button.dataset.min) {
+            priceMinInput.value = button.dataset.min;
+            minPrice = Number(button.dataset.min);
+        }
+        if (button.dataset.max) {
+            priceMaxInput.value = button.dataset.max;
+            maxPrice = Number(button.dataset.max);
+        }
+        if (button.dataset.sort) {
+            sortSelect.value = button.dataset.sort;
+            sortOrder = button.dataset.sort;
+        }
+        closeCheckout();
+        if (button.dataset.category) {
+            setCategory(button.dataset.category);
+        } else {
+            renderProducts();
+        }
+        document.getElementById("products").scrollIntoView();
+        if (window.innerWidth <= 700) {
+            closeAssistant(false); // on phones the chat covers the shop
+        }
+    } else if (action === "compare") {
+        compareList = button.dataset.ids.split(",").map(Number).slice(0, COMPARE_LIMIT);
+        renderCompare();
+        openCompare();
+    }
+});
 
 
 // =========================================================

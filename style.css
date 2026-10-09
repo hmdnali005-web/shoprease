@@ -2042,6 +2042,580 @@ body.checkout-active main > section:not(.checkout) {
 
 
 /* =========================================================
+   16b. HAVOME ASSISTANT (scripted bilingual chat)
+   ========================================================= */
+/* Round button in the bottom-right corner */
+.assistant-launcher {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 35;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 58px;
+    height: 58px;
+    border: 1px solid var(--color-sand-dark);
+    border-radius: 50%;
+    background-color: var(--color-cream);
+    color: var(--color-primary);
+    box-shadow: 0 10px 28px rgba(43, 38, 33, 0.16);
+    cursor: pointer;
+    transition: transform 0.3s var(--ease), background-color 0.3s, bottom 0.3s, opacity 0.3s, visibility 0.3s;
+}
+
+.assistant-launcher:hover {
+    transform: translateY(-2px);
+    background-color: var(--color-sand);
+}
+
+.assistant-icon-close,
+.assistant-launcher[aria-expanded="true"] .assistant-icon-chat {
+    display: none;
+}
+
+.assistant-launcher[aria-expanded="true"] .assistant-icon-close {
+    display: block;
+}
+
+/* Hide the button while the cart, wishlist, menu or a popup is open,
+   so it never covers their buttons */
+body.no-scroll .assistant-launcher {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Make room: the WhatsApp button sits above the assistant button */
+.whatsapp-float {
+    bottom: calc(1.25rem + 58px + 0.75rem);
+}
+
+/* Lift both buttons above the compare tray when it is showing */
+.has-compare-tray .assistant-launcher {
+    bottom: 6.5rem;
+}
+
+.has-compare-tray .whatsapp-float {
+    bottom: calc(6.5rem + 58px + 0.75rem);
+}
+
+/* Messages appear above the assistant button */
+.toast {
+    bottom: calc(1.25rem + 58px + 1rem);
+}
+
+/* The chat panel */
+.assistant-panel {
+    position: fixed;
+    right: 1.25rem;
+    bottom: calc(1.25rem + 58px + 0.75rem);
+    z-index: 36;                   /* above the page, below product/compare popups (40) */
+    display: flex;
+    flex-direction: column;
+    width: 390px;
+    max-width: calc(100vw - 2.5rem);
+    /* never taller than the space between the header and the round button,
+       so the header's wishlist/cart icons stay usable */
+    height: min(620px, calc(100vh - var(--header-height) - 1.25rem - 58px - 1.75rem));
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(43, 38, 33, 0.2);
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(12px) scale(0.98);
+    transform-origin: bottom right;
+    transition: opacity 0.3s, transform 0.35s var(--ease), visibility 0.3s;
+}
+
+.assistant-panel.open {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition: opacity 0.3s, transform 0.35s var(--ease), visibility 0s;
+}
+
+.has-compare-tray .assistant-panel {
+    bottom: calc(6.5rem + 58px + 0.75rem);
+    height: min(620px, calc(100vh - var(--header-height) - 6.5rem - 58px - 1.75rem));
+}
+
+.assistant-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 0.9rem 0.9rem 1.1rem;
+    background-color: var(--color-white);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.assistant-avatar {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background-color: var(--color-cream);
+    border: 1px solid var(--color-sand-dark);
+    color: var(--color-primary);
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.assistant-heading {
+    flex: 1;
+    min-width: 0;
+}
+
+.assistant-heading h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    line-height: 1.15;
+    text-align: start;
+}
+
+.assistant-heading p {
+    font-size: 0.75rem;
+    color: var(--color-text-light);
+}
+
+/* EN | ع switcher */
+.assistant-lang {
+    display: flex;
+    padding: 2px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 999px;
+}
+
+.assistant-lang-btn {
+    min-width: 32px;
+    height: 28px;
+    padding: 0 0.5rem;
+    border: none;
+    border-radius: 999px;
+    background: none;
+    color: var(--color-text-light);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.assistant-lang-btn[lang="ar"] {
+    font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+    font-size: 0.85rem;
+}
+
+.assistant-lang-btn[aria-pressed="true"] {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+}
+
+.assistant-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--color-text);
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.assistant-close:hover {
+    background-color: var(--color-cream);
+}
+
+/* Scrollable conversation */
+.assistant-messages {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.assistant-message {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-width: 88%;
+    animation: assistant-in 0.3s var(--ease) both;
+}
+
+.assistant-message.from-bot {
+    align-self: flex-start;
+}
+
+.assistant-message.from-user {
+    align-self: flex-end;
+}
+
+.assistant-bubble {
+    padding: 0.7rem 0.95rem;
+    border-radius: 14px;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+.from-bot .assistant-bubble {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-end-start-radius: 4px;
+    color: var(--color-text);
+}
+
+.from-user .assistant-bubble {
+    background-color: var(--color-primary);
+    border-end-end-radius: 4px;
+    color: var(--color-white);
+}
+
+.assistant-bubble p + p,
+.assistant-bubble ol,
+.assistant-bubble ul {
+    margin-top: 0.45rem;
+}
+
+.assistant-bubble ol,
+.assistant-bubble ul {
+    padding-inline-start: 1.2rem;
+}
+
+.assistant-bubble strong {
+    font-weight: 600;
+}
+
+/* Arabic text gets a font with good Arabic glyphs */
+.assistant-panel [lang="ar"],
+.assistant-panel[lang="ar"] .assistant-heading p,
+.assistant-panel[lang="ar"] .assistant-disclaimer,
+.assistant-panel[lang="ar"] input {
+    font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+}
+
+.assistant-message[lang="ar"] .assistant-bubble {
+    font-size: 0.95rem;
+    line-height: 1.75;
+}
+
+/* "..." while the assistant prepares an answer */
+.assistant-typing .assistant-bubble {
+    display: inline-flex;
+    gap: 4px;
+    padding: 0.85rem 1rem;
+}
+
+.assistant-typing span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--color-taupe);
+    animation: assistant-dot 1s infinite ease-in-out;
+}
+
+.assistant-typing span:nth-child(2) { animation-delay: 0.15s; }
+.assistant-typing span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes assistant-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+}
+
+@keyframes assistant-dot {
+    0%, 80%, 100% { opacity: 0.3; }
+    40%           { opacity: 1; }
+}
+
+/* Product cards inside the chat */
+.assistant-products {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.assistant-product {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0.6rem;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+}
+
+.assistant-product img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 8px;
+    background-color: var(--color-sand);
+}
+
+.assistant-product-info {
+    min-width: 0;
+}
+
+.assistant-product-name {
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.assistant-product-meta {
+    font-size: 0.78rem;
+    color: var(--color-text-light);
+}
+
+.assistant-product-meta bdi {
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.assistant-product-reason {
+    margin-top: 0.25rem;
+    font-size: 0.78rem;
+    font-style: italic;
+    color: var(--color-text-light);
+}
+
+.assistant-product-actions,
+.assistant-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.45rem;
+}
+
+.assistant-action {
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 999px;
+    background-color: var(--color-white);
+    color: var(--color-primary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.assistant-action:hover {
+    border-color: var(--color-primary);
+}
+
+.assistant-action.primary {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-white);
+}
+
+.assistant-action.primary:hover {
+    background-color: var(--color-primary-dark);
+}
+
+.assistant-action:disabled {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+    color: var(--color-white);
+    cursor: default;
+}
+
+/* Side-by-side comparison inside the chat */
+.assistant-compare {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.assistant-compare th,
+.assistant-compare td {
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--color-border);
+    text-align: start;
+    vertical-align: top;
+}
+
+.assistant-compare thead th {
+    font-family: var(--font-heading);
+    font-size: 0.98rem;
+    font-weight: 500;
+    background-color: var(--color-cream);
+}
+
+.assistant-compare tbody th {
+    width: 26%;
+    font-weight: 500;
+    color: var(--color-text-light);
+}
+
+/* Suggested questions: one row you can swipe sideways */
+.assistant-suggestions {
+    display: flex;
+    gap: 0.4rem;
+    padding: 0.6rem 1rem;
+    overflow-x: auto;
+    border-top: 1px solid var(--color-border);
+    scrollbar-width: none;
+}
+
+.assistant-suggestions::-webkit-scrollbar {
+    display: none;
+}
+
+.assistant-chip {
+    flex-shrink: 0;
+    padding: 0.45rem 0.85rem;
+    border: 1px solid var(--color-sand-dark);
+    border-radius: 999px;
+    background-color: var(--color-cream);
+    color: var(--color-text);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.assistant-chip:hover {
+    background-color: var(--color-sand);
+    border-color: var(--color-taupe);
+}
+
+/* Input + send */
+.assistant-form {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem 0.4rem;
+    background-color: var(--color-white);
+    border-top: 1px solid var(--color-border);
+}
+
+.assistant-form input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 999px;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font: inherit;
+    font-size: 0.92rem;
+}
+
+.assistant-form input:focus {
+    border-color: var(--color-primary);
+}
+
+.assistant-send {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.assistant-send:hover {
+    background-color: var(--color-primary-dark);
+}
+
+/* Point the arrow the right way in Arabic */
+.assistant-panel[dir="rtl"] .assistant-send svg {
+    transform: scaleX(-1);
+}
+
+.assistant-disclaimer {
+    padding: 0 1rem 0.6rem;
+    background-color: var(--color-white);
+    font-size: 0.68rem;
+    text-align: center;
+    color: var(--color-text-light);
+}
+
+/* Phones: the chat becomes a bottom sheet across the full width */
+@media (max-width: 700px) {
+    .assistant-launcher {
+        right: 0.9rem;
+        bottom: 0.9rem;
+        width: 54px;
+        height: 54px;
+    }
+
+    .whatsapp-float {
+        right: 0.9rem;
+        bottom: calc(0.9rem + 54px + 0.6rem);
+    }
+
+    .has-compare-tray .assistant-launcher {
+        bottom: 8rem;
+    }
+
+    .has-compare-tray .whatsapp-float {
+        bottom: calc(8rem + 54px + 0.6rem);
+    }
+
+    .has-compare-tray .toast {
+        bottom: 12rem;
+    }
+
+    .assistant-panel,
+    .has-compare-tray .assistant-panel {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        max-width: none;
+        height: min(88vh, 680px);
+        border-radius: 18px 18px 0 0;
+        border-bottom: none;
+        transform-origin: bottom center;
+    }
+
+    .assistant-message {
+        max-width: 94%;
+    }
+
+    .assistant-header {
+        gap: 0.6rem;
+        padding: 0.75rem 0.6rem 0.75rem 0.9rem;
+    }
+
+    .assistant-heading h2 {
+        font-size: 1.15rem;
+    }
+
+    .assistant-heading p {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Keep the last footer line clear of the round buttons */
+    .footer-bottom {
+        padding-bottom: 5.5rem;
+    }
+}
+
+
+/* =========================================================
    17. RESPONSIVE: laptops (1100px and below)
    ========================================================= */
 @media (max-width: 1100px) {

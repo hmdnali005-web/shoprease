@@ -580,6 +580,53 @@
         </div>
     </div>
 
+    <!-- ========== HAVOME ASSISTANT: scripted bilingual shopping helper ==========
+         Works entirely in the browser (script.js, section 15). No AI service or API key. -->
+    <button class="assistant-launcher" id="assistant-launcher" aria-label="Open HAVOME Assistant"
+            aria-expanded="false" aria-controls="assistant-panel">
+        <svg class="assistant-icon-chat" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 12a7.5 7.5 0 0 1-11 6.6L4 20l1.4-4.4A7.5 7.5 0 1 1 20 12z"></path>
+            <path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01" stroke-width="2.4"></path>
+        </svg>
+        <svg class="assistant-icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18"></path>
+        </svg>
+    </button>
+
+    <section class="assistant-panel" id="assistant-panel" role="dialog" aria-labelledby="assistant-title" dir="ltr" lang="en">
+        <div class="assistant-header">
+            <span class="assistant-avatar" aria-hidden="true">H</span>
+            <div class="assistant-heading">
+                <h2 id="assistant-title">HAVOME Assistant</h2>
+                <p id="assistant-subtitle">Quick answers from our catalog</p>
+            </div>
+            <div class="assistant-lang" role="group" aria-label="Language">
+                <button class="assistant-lang-btn" data-lang="en" aria-pressed="true" lang="en">EN</button>
+                <button class="assistant-lang-btn" data-lang="ar" aria-pressed="false" lang="ar">ع</button>
+            </div>
+            <button class="assistant-close" id="assistant-close" aria-label="Close assistant">✕</button>
+        </div>
+
+        <!-- The conversation. role="log" lets screen readers announce new messages. -->
+        <div class="assistant-messages" id="assistant-messages" role="log" aria-live="polite"></div>
+
+        <div class="assistant-suggestions" id="assistant-suggestions" aria-label="Suggested questions"></div>
+
+        <form class="assistant-form" id="assistant-form" autocomplete="off">
+            <label class="visually-hidden" for="assistant-input" id="assistant-input-label">Type your question</label>
+            <input type="text" id="assistant-input" dir="auto" maxlength="300" placeholder="Ask about pillows, prices, orders...">
+            <button type="submit" class="assistant-send" id="assistant-send" aria-label="Send message">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 12h15M13 6l6 6-6 6"></path>
+                </svg>
+            </button>
+        </form>
+        <p class="assistant-disclaimer" id="assistant-disclaimer">Automated assistant with scripted answers. Not a live person or AI.</p>
+    </section>
+
     <!-- ========== SMALL MESSAGES ("Added to your wishlist") ========== -->
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
